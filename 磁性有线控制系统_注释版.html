@@ -1,0 +1,1798 @@
+<!DOCTYPE html>   <!-- 声明文档类型为 HTML5，让浏览器按标准模式渲染 -->
+<html lang="zh-CN">   <!-- 网页根元素，lang 属性声明页面主要语言为简体中文 -->
+<head>   <!-- 头部区域，包含元信息、标题和样式，不直接显示在页面上 -->
+    <meta charset="UTF-8">   <!-- 声明字符编码为 UTF-8，保证中文正常显示 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">   <!-- 移动端视口设置：宽度跟随设备宽度、初始缩放 1 倍 -->
+    <title>MGS 磁性有线控制系统 — 水平定向钻导向控制界面</title>   <!-- 浏览器标签页显示的标题文字 -->
+    <style>   <!-- 内嵌样式表开始，下面所有 CSS 规则都写在这里 -->
+        /* 上方装饰性注释块，仅说明风格，无实际效果 */
+        /* 说明：这是工业控制室风格的界面设计 */
+        /* 说明：设计参考了西门子 HMI / ABB SCADA / 石油钻探控制台 */
+        :root {   <!-- 定义 CSS 变量（自定义属性）的作用域为整个文档根元素 -->
+            --bg-deep: #161719;   <!-- 定义最深背景色变量（近黑色），用于页面底色 -->
+            --bg-panel: #1e2022;   <!-- 定义面板背景色变量（深灰），用于各卡片面板 -->
+            --bg-input: #252729;   <!-- 定义输入框/滑块轨道背景色变量（稍亮的深灰） -->
+            --border: #2e3033;   <!-- 定义普通边框颜色变量（暗灰） -->
+            --border-active: #4a4d50;   <!-- 定义高亮/激活态边框颜色变量（亮一点的灰） -->
+            --text-primary: #fff;   <!-- 定义主文字颜色变量（白色） -->
+            --text-secondary: #fff;   <!-- 定义次级文字颜色变量（这里也设为白色） -->
+            --text-dim: #fff;   <!-- 定义弱化文字颜色变量（这里同样设为白色） -->
+            --text-inverse: #1a1c1d;   <!-- 定义反色文字颜色变量（深色，用于浅色背景上的文字） -->
+
+            /* 注释：工业信号色——饱和度克制，无霓虹感 */
+            --sig-yellow: #e8b82e;   <!-- 定义主黄色信号色变量，用于参数数值高亮 -->
+            /* 注释：主黄色——统一参数色 */
+            --sig-white: #f2efe9;   <!-- 定义米白色信号色变量，用于强调数值 -->
+            --sig-orange: #d9782b;   <!-- 定义橙色信号色变量，用于警告态 -->
+            --sig-red: #c43d36;   <!-- 定义红色信号色变量，用于报警/急停态 -->
+            --sig-green: #4e8c41;   <!-- 定义绿色信号色变量，用于正常/安全态 -->
+            --sig-blue: #4e7d96;   <!-- 定义蓝色信号色变量，用于信息态 -->
+            --sig-steel: #6b7b8c;   <!-- 定义钢灰色信号色变量，用于中性元素 -->
+
+            --font-mono: 'Consolas', 'Monaco', 'Courier New', 'SF Mono', monospace;   <!-- 定义等宽字体变量，用于数字读数 -->
+            --font-sans: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;   <!-- 定义无衬线字体变量，用于正文 -->
+            --font-display: 'DIN Alternate', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;   <!-- 定义展示字体变量，用于标题 -->
+        }   <!-- 结束 CSS 变量定义块 -->
+
+        * {   <!-- 通配符选择器，选中页面所有元素 -->
+            margin: 0;   <!-- 清除所有元素默认外边距 -->
+            padding: 0;   <!-- 清除所有元素默认内边距 -->
+            box-sizing: border-box;   <!-- 让元素宽高包含内边距和边框，布局更直观 -->
+        }   <!-- 结束通配符规则 -->
+
+        html,   <!-- 选中 html 元素（与下一行 body 组成选择器组） -->
+        body {   <!-- 选中 body 元素，与上一行共同设置 -->
+            height: 100%;   <!-- 让 html 和 body 占满视口高度 -->
+            overflow: hidden;   <!-- 隐藏页面整体滚动条，内容由内部面板自行滚动 -->
+        }   <!-- 结束 html/body 规则 -->
+
+        body {   <!-- 单独为 body 设置样式 -->
+            background: var(--bg-deep);   <!-- 设置页面底色为最深的深灰色 -->
+            background-image:   <!-- 声明要叠加一张背景图片（渐变） -->
+                repeating-linear-gradient(0deg,   <!-- 生成 0 度方向的重复线性渐变，作为水平扫描线纹理 -->
+                transparent, transparent 2px,   <!-- 渐变前 2 像素为透明，形成留白条纹 -->
+                rgba(255, 255, 255, 0.008) 2px,   <!-- 从 2 像素处开始用极淡白色，做出细线 -->
+                rgba(255, 255, 255, 0.008) 4px);   <!-- 到 4 像素处结束淡白条纹，然后重复 -->
+            color: var(--text-primary);   <!-- 设置页面默认文字颜色为白色 -->
+            font-family: var(--font-sans);   <!-- 设置页面默认字体为无衬线字体 -->
+            display: flex;   <!-- 将 body 设为弹性容器，便于纵向排列 header 和主区域 -->
+            flex-direction: column;   <!-- 弹性布局主轴设为纵向，子元素从上到下排列 -->
+        }   <!-- 结束 body 规则 -->
+
+        /* 注释块：HEADER——紧凑设备顶栏 */
+        .header {   <!-- 顶栏容器样式 -->
+            flex: 0 0 auto;   <!-- 在纵向弹性布局中不拉伸不收缩，保持自身高度 -->
+            display: flex;   <!-- 顶栏内部用弹性布局排列左右两侧 -->
+            align-items: center;   <!-- 垂直居中顶栏内所有子元素 -->
+            justify-content: space-between;   <!-- 左右两端分布子元素，中间留空 -->
+            padding: 6px 20px;   <!-- 内边距上下 6 像素、左右 20 像素 -->
+            background: #1c1d1f;   <!-- 顶栏背景色为深灰 -->
+            border-bottom: 1px solid var(--border);   <!-- 顶栏底部 1 像素分隔线 -->
+            z-index: 10;   <!-- 设置层叠层级为 10，保证顶栏盖在其它内容之上 -->
+        }   <!-- 结束 .header 规则 -->
+        .header-brand {   <!-- 顶栏左侧品牌区容器 -->
+            display: flex;   <!-- 品牌区用弹性布局横向排列 logo 和标题 -->
+            align-items: center;   <!-- 垂直居中 logo 与标题 -->
+            gap: 10px;   <!-- 子元素之间留 10 像素间距 -->
+        }   <!-- 结束 .header-brand 规则 -->
+        .header-logo {   <!-- logo 方框样式 -->
+            width: 28px;   <!-- logo 框宽 28 像素 -->
+            height: 28px;   <!-- logo 框高 28 像素 -->
+            border: 1.5px solid var(--sig-steel);   <!-- 1.5 像素钢灰色边框 -->
+            display: flex;   <!-- logo 框内用弹性布局居中图标 -->
+            align-items: center;   <!-- 垂直居中图标 -->
+            justify-content: center;   <!-- 水平居中图标 -->
+            background: #232528;   <!-- logo 框背景为深灰 -->
+        }   <!-- 结束 .header-logo 规则 -->
+        .header-logo svg {   <!-- logo 框内的 svg 图标样式 -->
+            width: 16px;   <!-- 图标宽 16 像素 -->
+            height: 16px;   <!-- 图标高 16 像素 -->
+            fill: var(--sig-steel);   <!-- 图标填充色为钢灰色 -->
+        }   <!-- 结束 svg 图标规则 -->
+        .header-title {   <!-- 顶栏主标题文字样式 -->
+            font-size: 13px;   <!-- 字号 13 像素 -->
+            font-weight: 600;   <!-- 字重 600（半粗） -->
+            letter-spacing: 1.5px;   <!-- 字符间距加宽 1.5 像素，更显工业感 -->
+            color: var(--text-primary);   <!-- 标题颜色为白色 -->
+            font-family: var(--font-display);   <!-- 使用展示字体显示标题 -->
+        }   <!-- 结束 .header-title 规则 -->
+        .header-title em {   <!-- 标题中间的 em 元素（分隔点）样式 -->
+            font-style: normal;   <!-- 取消斜体，保持正体 -->
+            color: var(--sig-yellow);   <!-- 分隔点颜色为主黄色，突出品牌 -->
+            margin: 0 2px;   <!-- 分隔点左右各留 2 像素间距 -->
+        }   <!-- 结束 em 规则 -->
+        .header-status {   <!-- 顶栏右侧状态信息容器 -->
+            display: flex;   <!-- 状态项横向弹性排列 -->
+            align-items: center;   <!-- 垂直居中状态项 -->
+            gap: 20px;   <!-- 各状态项之间留 20 像素间距 -->
+            font-size: 11px;   <!-- 状态文字字号 11 像素 -->
+            font-family: var(--font-mono);   <!-- 状态文字用等宽字体，读数更整齐 -->
+            color: var(--text-secondary);   <!-- 状态文字颜色为白色 -->
+        }   <!-- 结束 .header-status 规则 -->
+        .status-indicator {   <!-- 单个“指示灯+文字”组合样式 -->
+            display: flex;   <!-- 指示灯与文字横向排列 -->
+            align-items: center;   <!-- 垂直居中对齐 -->
+            gap: 6px;   <!-- 指示灯与文字间距 6 像素 -->
+        }   <!-- 结束 .status-indicator 规则 -->
+        .status-lamp {   <!-- 指示灯小圆点样式 -->
+            width: 7px;   <!-- 圆点宽 7 像素 -->
+            height: 7px;   <!-- 圆点高 7 像素 -->
+            background: var(--sig-green);   <!-- 默认绿色，表示正常在线 -->
+        }   <!-- 结束 .status-lamp 规则 -->
+        .status-lamp.warn {   <!-- 带 warn 类的指示灯（警告态） -->
+            background: var(--sig-orange);   <!-- 警告态改为橙色 -->
+        }   <!-- 结束 warn 规则 -->
+        .status-lamp.online {   <!-- 带 online 类的指示灯（在线态） -->
+            background: var(--sig-green);   <!-- 在线态为绿色 -->
+        }   <!-- 结束 online 规则 -->
+        .header-stat strong {   <!-- 顶栏统计项里加粗的数值样式 -->
+            color: var(--sig-white);   <!-- 数值颜色为米白色，突出读数 -->
+            font-weight: 600;   <!-- 字重 600 -->
+            margin: 0 3px;   <!-- 数值左右留 3 像素间距 -->
+        }   <!-- 结束 strong 规则 -->
+
+        /* 注释块：MAIN LAYOUT——三栏+底部（左右加宽） */
+        .main-grid {   <!-- 主内容区网格容器样式 -->
+            flex: 1 1 0;   <!-- 占据 body 剩余全部纵向空间，可收缩 -->
+            min-height: 0;   <!-- 允许网格高度小于内容高度，避免溢出 -->
+            display: grid;   <!-- 使用 CSS Grid 布局 -->
+            grid-template-columns: 360px 1fr 360px;   <!-- 三列：左右各 360 像素，中间自适应 -->
+            grid-template-rows: 1fr auto;   <!-- 两行：上面自适应、底部按内容高度 -->
+            gap: 4px;   <!-- 网格单元格之间留 4 像素间隙 -->
+            padding: 4px 6px;   <!-- 网格容器内边距上下 4 像素、左右 6 像素 -->
+        }   <!-- 结束 .main-grid 规则 -->
+
+        /* 注释块：PANEL BASE——工业面板 */
+        .panel {   <!-- 所有面板卡片的基础样式 -->
+            background: var(--bg-panel);   <!-- 面板背景为深灰 -->
+            border: 1px solid var(--border);   <!-- 1 像素暗灰边框 -->
+            padding: 16px 18px;   <!-- 内边距上下 16、左右 18 像素 -->
+            display: flex;   <!-- 面板内用弹性布局纵向排列标题和内容 -->
+            flex-direction: column;   <!-- 主轴为纵向，内容从上到下排列 -->
+        }   <!-- 结束 .panel 规则 -->
+        .panel-header {   <!-- 面板标题栏样式 -->
+            display: flex;   <!-- 标题栏内横向排列指示点和标题文字 -->
+            align-items: center;   <!-- 垂直居中 -->
+            gap: 7px;   <!-- 子元素间距 7 像素 -->
+            margin-bottom: 14px;   <!-- 标题栏下方留 14 像素 -->
+            padding-bottom: 8px;   <!-- 标题栏下内边距 8 像素，配合分隔线 -->
+            border-bottom: 1px solid var(--border);   <!-- 标题栏底部 1 像素分隔线 -->
+            flex-shrink: 0;   <!-- 标题栏不随面板压缩而缩小 -->
+        }   <!-- 结束 .panel-header 规则 -->
+        .panel-header .pip {   <!-- 标题栏前的小色点样式 -->
+            width: 6px;   <!-- 色点宽 6 像素 -->
+            height: 6px;   <!-- 色点高 6 像素 -->
+            flex-shrink: 0;   <!-- 色点不缩小 -->
+        }   <!-- 结束 .pip 规则 -->
+        .panel-header .pip.yellow {   <!-- 黄色指示点 -->
+            background: var(--sig-yellow);   <!-- 填充主黄色 -->
+        }   <!-- 结束 pip.yellow 规则 -->
+        .panel-header .pip.orange {   <!-- 橙色指示点 -->
+            background: var(--sig-orange);   <!-- 填充橙色 -->
+        }   <!-- 结束 pip.orange 规则 -->
+        .panel-header .pip.red {   <!-- 红色指示点 -->
+            background: var(--sig-red);   <!-- 填充红色 -->
+        }   <!-- 结束 pip.red 规则 -->
+        .panel-header .pip.green {   <!-- 绿色指示点 -->
+            background: var(--sig-green);   <!-- 填充绿色 -->
+        }   <!-- 结束 pip.green 规则 -->
+        .panel-header .pip.blue {   <!-- 蓝色指示点 -->
+            background: var(--sig-blue);   <!-- 填充蓝色 -->
+        }   <!-- 结束 pip.blue 规则 -->
+        .panel-header .pip.steel {   <!-- 钢灰色指示点 -->
+            background: var(--sig-steel);   <!-- 填充钢灰色 -->
+        }   <!-- 结束 pip.steel 规则 -->
+
+        .panel-label {   <!-- 面板标题文字样式 -->
+            font-size: 11px;   <!-- 字号 11 像素 -->
+            font-weight: 600;   <!-- 字重 600 -->
+            letter-spacing: 2px;   <!-- 字符间距 2 像素，工业风 -->
+            color: var(--text-secondary);   <!-- 标题颜色为白色 -->
+            text-transform: uppercase;   <!-- 英文字母转大写 -->
+        }   <!-- 结束 .panel-label 规则 -->
+
+        /* 注释块：LEFT PANEL——实时参数（可滚动），字体放大填充留白 */
+        .left-panel {   <!-- 左侧参数栏容器样式 -->
+            grid-row: 1;   <!-- 放在网格第一行 -->
+            display: flex;   <!-- 纵向弹性排列内部面板 -->
+            flex-direction: column;   <!-- 主轴纵向 -->
+            gap: 6px;   <!-- 面板之间留 6 像素 -->
+            overflow-y: auto;   <!-- 纵向内容超出时可滚动 -->
+            overflow-x: hidden;   <!-- 横向溢出隐藏 -->
+            min-height: 0;   <!-- 允许内部滚动所需的最小高度为 0 -->
+            padding-right: 4px;   <!-- 右侧留 4 像素，给滚动条让位 -->
+            scrollbar-width: thin;   <!-- 滚动条设为细窄样式 -->
+            scrollbar-color: var(--border) transparent;   <!-- 滚动条滑块用暗灰、轨道透明 -->
+        }   <!-- 结束 .left-panel 规则 -->
+        .left-panel .panel {   <!-- 左侧栏内的面板样式 -->
+            flex: 1;   <!-- 面板平均瓜分纵向空间 -->
+            justify-content: flex-start;   <!-- 内容靠上排列 -->
+        }   <!-- 结束规则 -->
+
+        .param-group {   <!-- 参数组容器 -->
+            flex: 1;   <!-- 占满可用纵向空间 -->
+            display: flex;   <!-- 纵向排列参数项 -->
+            flex-direction: column;   <!-- 主轴纵向 -->
+            justify-content: space-around;   <!-- 参数项在纵向均匀分布 -->
+        }   <!-- 结束 .param-group 规则 -->
+        .param-item {   <!-- 单个参数行样式 -->
+            display: flex;   <!-- 参数名与数值横向两端排列 -->
+            justify-content: space-between;   <!-- 两端对齐 -->
+            align-items: baseline;   <!-- 按文字基线对齐 -->
+            padding: 12px 0;   <!-- 上下内边距 12 像素 -->
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);   <!-- 底部极淡分隔线 -->
+        }   <!-- 结束 .param-item 规则 -->
+        .param-item:last-child {   <!-- 最后一行的参数项 -->
+            border-bottom: none;   <!-- 去掉底部边框，避免多余分隔线 -->
+        }   <!-- 结束 last-child 规则 -->
+        .param-key {   <!-- 参数名文字样式 -->
+            font-size: 15px;   <!-- 字号 15 像素 -->
+            font-weight: 500;   <!-- 字重 500 -->
+            color: var(--text-secondary);   <!-- 文字颜色白色 -->
+            white-space: nowrap;   <!-- 参数名不换行 -->
+            letter-spacing: 0.3px;   <!-- 轻微加宽字符间距 -->
+        }   <!-- 结束 .param-key 规则 -->
+        .param-val-wrap {   <!-- 参数值右侧包裹容器 -->
+            text-align: right;   <!-- 数值右对齐 -->
+            flex-shrink: 0;   <!-- 数值区域不缩小，防止被挤压换行 -->
+        }   <!-- 结束 .param-val-wrap 规则 -->
+        .param-val {   <!-- 参数数值样式（大号黄色数字） -->
+            font-family: var(--font-mono);   <!-- 用等宽字体显示数字，读数对齐 -->
+            font-size: 38px;   <!-- 字号 38 像素（注释：大幅放大 24→38） -->
+            font-weight: 700;   <!-- 字重 700（粗体） -->
+            color: var(--sig-yellow);   <!-- 数值颜色为主黄色 -->
+            letter-spacing: 0.5px;   <!-- 字符间距 0.5 像素 -->
+            line-height: 1.2;   <!-- 行高 1.2 倍，紧凑显示 -->
+        }   <!-- 结束 .param-val 规则 -->
+        .param-unit {   <!-- 参数单位样式 -->
+            font-size: 13px;   <!-- 单位字号 13 像素，小于数值 -->
+            color: var(--text-dim);   <!-- 单位颜色用弱化白 -->
+            margin-left: 3px;   <!-- 与数值间隔 3 像素 -->
+            font-weight: 400;   <!-- 单位字重正常 -->
+        }   <!-- 结束 .param-unit 规则 -->
+
+        /* 注释：偏差条区域 */
+        .deviation-section {   <!-- 偏差监控区容器 -->
+            margin-top: 2px;   <!-- 顶部留 2 像素 -->
+            flex: 1;   <!-- 占满剩余纵向空间 -->
+            display: flex;   <!-- 纵向排列标题、进度条和状态文字 -->
+            flex-direction: column;   <!-- 主轴纵向 -->
+            justify-content: space-around;   <!-- 内容纵向均匀分布 -->
+        }   <!-- 结束 .deviation-section 规则 -->
+        .deviation-header {   <!-- 偏差标题行 -->
+            display: flex;   <!-- 名称与数值两端排列 -->
+            justify-content: space-between;   <!-- 两端对齐 -->
+            align-items: baseline;   <!-- 基线对齐 -->
+            padding: 6px 0;   <!-- 上下内边距 6 像素 -->
+        }   <!-- 结束 .deviation-header 规则 -->
+        .deviation-header .param-key {   <!-- 偏差标题行的参数名 -->
+            font-size: 15px;   <!-- 字号 15 像素 -->
+        }   <!-- 结束规则 -->
+        .deviation-header .param-val {   <!-- 偏差标题行的数值 -->
+            font-size: 38px;   <!-- 字号 38 像素（注释：大幅放大） -->
+            color: var(--sig-yellow);   <!-- 数值为黄色 -->
+        }   <!-- 结束规则 -->
+        .deviation-bar-outer {   <!-- 偏差条外轨道 -->
+            height: 10px;   <!-- 轨道高 10 像素（注释：加高 5→10） -->
+            background: var(--bg-input);   <!-- 轨道背景为深色输入底色 -->
+            margin-top: 4px;   <!-- 顶部留 4 像素 -->
+            position: relative;   <!-- 相对定位，供内部填充条定位 -->
+            border-radius: 2px;   <!-- 圆角 2 像素 -->
+        }   <!-- 结束 .deviation-bar-outer 规则 -->
+        .deviation-bar-inner {   <!-- 偏差条内部填充条 -->
+            height: 100%;   <!-- 填满轨道高度 -->
+            width: 0%;   <!-- 初始宽度为 0，由 JS 动态控制 -->
+            transition: width 0.4s ease, background 0.4s ease;   <!-- 宽度和颜色变化带 0.4 秒过渡动画 -->
+            border-radius: 2px;   <!-- 圆角 2 像素 -->
+        }   <!-- 结束 .deviation-bar-inner 规则 -->
+        .deviation-bar-inner.safe {   <!-- 安全态的填充条 -->
+            background: var(--sig-green);   <!-- 绿色 -->
+            width: 12%;   <!-- 安全态默认宽度 12% -->
+        }   <!-- 结束 safe 规则 -->
+        .deviation-bar-inner.warn {   <!-- 警告态填充条 -->
+            background: var(--sig-orange);   <!-- 橙色 -->
+            width: 55%;   <!-- 警告态默认宽度 55% -->
+        }   <!-- 结束 warn 规则 -->
+        .deviation-bar-inner.alarm {   <!-- 报警态填充条 -->
+            background: var(--sig-red);   <!-- 红色 -->
+            width: 92%;   <!-- 报警态默认宽度 92% -->
+        }   <!-- 结束 alarm 规则 -->
+
+        .deviation-status {   <!-- 偏差状态文字样式 -->
+            font-size: 14px;   <!-- 字号 14 像素（注释：放大 11→14） -->
+            margin-top: 6px;   <!-- 顶部留 6 像素 -->
+            font-family: var(--font-mono);   <!-- 用等宽字体 -->
+            font-weight: 500;   <!-- 字重 500 -->
+            letter-spacing: 0.2px;   <!-- 字符间距 0.2 像素 -->
+        }   <!-- 结束 .deviation-status 规则 -->
+        .deviation-status.safe {   <!-- 安全态状态文字 -->
+            color: var(--sig-green);   <!-- 绿色 -->
+        }   <!-- 结束 safe 规则 -->
+        .deviation-status.warn {   <!-- 警告态状态文字 -->
+            color: var(--sig-orange);   <!-- 橙色 -->
+        }   <!-- 结束 warn 规则 -->
+        .deviation-status.alarm {   <!-- 报警态状态文字 -->
+            color: var(--sig-red);   <!-- 红色 -->
+            font-weight: 700;   <!-- 加粗以强调危险 -->
+        }   <!-- 结束 alarm 规则 -->
+
+        /* 注释块：CENTER——SVG 可视化 */
+        .center-panel {   <!-- 中间可视化面板 -->
+            grid-row: 1;   <!-- 放在网格第一行 -->
+            display: flex;   <!-- 纵向弹性布局 -->
+            flex-direction: column;   <!-- 主轴纵向 -->
+            min-height: 0;   <!-- 允许内部 SVG 自适应收缩 -->
+            padding: 12px 14px;   <!-- 内边距上下 12、左右 14 像素 -->
+        }   <!-- 结束 .center-panel 规则 -->
+        #svgVis {   <!-- 中间剖面图 SVG 元素样式 -->
+            flex: 1;   <!-- 占满面板剩余空间 -->
+            width: 100%;   <!-- 宽度填满容器 -->
+            min-height: 0;   <!-- 允许高度收缩到 0，便于缩放 -->
+        }   <!-- 结束 #svgVis 规则 -->
+
+        /* 注释块：RIGHT PANEL——微调控制（可滚动，紧凑），字体放大填充留白 */
+        .right-panel {   <!-- 右侧控制栏容器 -->
+            grid-row: 1;   <!-- 放在网格第一行 -->
+            display: flex;   <!-- 纵向弹性布局 -->
+            flex-direction: column;   <!-- 主轴纵向 -->
+            gap: 6px;   <!-- 面板间距 6 像素 -->
+            overflow-y: auto;   <!-- 纵向可滚动 -->
+            overflow-x: hidden;   <!-- 横向溢出隐藏 -->
+            min-height: 0;   <!-- 允许内部滚动 -->
+            padding-right: 4px;   <!-- 右侧留位给滚动条 -->
+            scrollbar-width: thin;   <!-- 细滚动条 -->
+            scrollbar-color: var(--border) transparent;   <!-- 滚动条配色 -->
+        }   <!-- 结束 .right-panel 规则 -->
+        .right-panel .panel {   <!-- 右侧栏内面板 -->
+            flex: 1;   <!-- 平均分配纵向空间 -->
+            justify-content: flex-start;   <!-- 内容靠上 -->
+        }   <!-- 结束规则 -->
+
+        .control-group {   <!-- 控制组容器 -->
+            flex: 1;   <!-- 占满剩余空间 -->
+            display: flex;   <!-- 纵向弹性布局 -->
+            flex-direction: column;   <!-- 主轴纵向 -->
+            justify-content: space-around;   <!-- 内容纵向均匀分布 -->
+        }   <!-- 结束 .control-group 规则 -->
+        .control-row {   <!-- 控制标题行 -->
+            display: flex;   <!-- 横向排列名称和读数 -->
+            align-items: center;   <!-- 垂直居中 -->
+            justify-content: space-between;   <!-- 两端对齐 -->
+            margin-bottom: 8px;   <!-- 底部留 8 像素（注释：放大 4→8） -->
+        }   <!-- 结束 .control-row 规则 -->
+        .control-name {   <!-- 控制项名称文字 -->
+            font-size: 13px;   <!-- 字号 13 像素（注释：放大 11→13） -->
+            font-weight: 600;   <!-- 字重 600 -->
+            letter-spacing: 1.2px;   <!-- 字符间距 1.2 像素 -->
+            color: var(--text-secondary);   <!-- 颜色白色 -->
+        }   <!-- 结束 .control-name 规则 -->
+        .control-readout {   <!-- 控制项读数显示 -->
+            font-family: var(--font-mono);   <!-- 等宽字体 -->
+            font-size: 26px;   <!-- 字号 26 像素（注释：放大 18→26） -->
+            font-weight: 700;   <!-- 字重 700 -->
+            color: var(--sig-yellow);   <!-- 黄色读数 -->
+            letter-spacing: 0.5px;   <!-- 字符间距 0.5 像素 -->
+        }   <!-- 结束 .control-readout 规则 -->
+
+        .stepper-row {   <!-- 加减步进按钮行 -->
+            display: flex;   <!-- 横向排列按钮和数字显示 -->
+            align-items: stretch;   <!-- 子元素拉伸到相同高度 -->
+            gap: 4px;   <!-- 子元素间距 4 像素 -->
+        }   <!-- 结束 .stepper-row 规则 -->
+        .stepper-btn {   <!-- 步进加减按钮样式 -->
+            width: 40px;   <!-- 按钮宽 40 像素（注释：放大 32→40） -->
+            height: 40px;   <!-- 按钮高 40 像素 -->
+            border: 1px solid var(--border);   <!-- 1 像素暗灰边框 -->
+            background: var(--bg-input);   <!-- 按钮背景为深色输入底 -->
+            color: var(--text-primary);   <!-- 按钮符号颜色白色 -->
+            font-size: 20px;   <!-- 符号字号 20 像素 -->
+            font-weight: 600;   <!-- 字重 600 -->
+            cursor: pointer;   <!-- 鼠标悬停显示手型，提示可点击 -->
+            display: flex;   <!-- 按钮内弹性居中符号 -->
+            align-items: center;   <!-- 垂直居中 -->
+            justify-content: center;   <!-- 水平居中 -->
+            transition: all 0.1s;   <!-- 所有属性变化 0.1 秒过渡 -->
+            user-select: none;   <!-- 禁止选中按钮文字，避免连点误选 -->
+            font-family: var(--font-mono);   <!-- 等宽字体 -->
+            flex-shrink: 0;   <!-- 按钮不缩小 -->
+            border-radius: 2px;   <!-- 圆角 2 像素 -->
+        }   <!-- 结束 .stepper-btn 规则 -->
+        .stepper-btn:hover {   <!-- 按钮悬停态 -->
+            border-color: var(--border-active);   <!-- 边框变亮 -->
+            background: #2c2e31;   <!-- 背景微亮 -->
+        }   <!-- 结束 hover 规则 -->
+        .stepper-btn:active {   <!-- 按钮按下态 -->
+            background: #333538;   <!-- 背景更亮，反馈按压 -->
+        }   <!-- 结束 active 规则 -->
+        .stepper-btn.fine {   <!-- 微调（细步进）按钮变体 -->
+            font-size: 15px;   <!-- 符号字号更小 15 像素 -->
+            color: var(--text-secondary);   <!-- 符号颜色略弱 -->
+        }   <!-- 结束 .fine 规则 -->
+
+        .stepper-display {   <!-- 步进器中间的数字显示屏 -->
+            flex: 1;   <!-- 占满行内剩余宽度 -->
+            display: flex;   <!-- 弹性居中数字 -->
+            align-items: center;   <!-- 垂直居中 -->
+            justify-content: center;   <!-- 水平居中 -->
+            font-family: var(--font-mono);   <!-- 等宽字体 -->
+            font-size: 40px;   <!-- 字号 40 像素（注释：大幅放大 26→40） -->
+            font-weight: 700;   <!-- 字重 700 -->
+            background: var(--bg-input);   <!-- 背景深色，模拟仪表盘 -->
+            border: 1px solid var(--border);   <!-- 1 像素边框 -->
+            color: var(--sig-yellow);   <!-- 数字黄色 -->
+            min-width: 0;   <!-- 允许宽度收缩，防止溢出 -->
+            padding: 0 4px;   <!-- 左右内边距 4 像素 -->
+            letter-spacing: 0.5px;   <!-- 字符间距 0.5 像素 -->
+            border-radius: 2px;   <!-- 圆角 2 像素 -->
+        }   <!-- 结束 .stepper-display 规则 -->
+
+        /* 注释：颜色标记工具类 */
+        .c-sig-yellow {   <!-- 工具类：文字变黄色 -->
+            color: var(--sig-yellow);   <!-- 应用主黄色 -->
+        }   <!-- 结束 -->
+        .c-sig-orange {   <!-- 工具类：文字变橙色 -->
+            color: var(--sig-orange);   <!-- 应用橙色 -->
+        }   <!-- 结束 -->
+        .c-sig-red {   <!-- 工具类：文字变红色 -->
+            color: var(--sig-red);   <!-- 应用红色 -->
+        }   <!-- 结束 -->
+        .c-sig-green {   <!-- 工具类：文字变绿色 -->
+            color: var(--sig-green);   <!-- 应用绿色 -->
+        }   <!-- 结束 -->
+        .c-sig-blue {   <!-- 工具类：文字变蓝色 -->
+            color: var(--sig-blue);   <!-- 应用蓝色 -->
+        }   <!-- 结束 -->
+        .c-sig-white {   <!-- 工具类：文字变米白色 -->
+            color: var(--sig-white);   <!-- 应用米白色 -->
+        }   <!-- 结束 -->
+
+        .border-yellow {   <!-- 工具类：左侧黄色粗边条 -->
+            border-left: 3px solid var(--sig-yellow);   <!-- 左边框 3 像素黄色 -->
+            padding-left: 15px;   <!-- 左侧内边距 15 像素，给色条让位 -->
+        }   <!-- 结束 -->
+        .border-orange {   <!-- 工具类：左侧橙色粗边条 -->
+            border-left: 3px solid var(--sig-orange);   <!-- 左边框 3 像素橙色 -->
+            padding-left: 15px;   <!-- 左侧内边距 15 像素 -->
+        }   <!-- 结束 -->
+        .border-red {   <!-- 工具类：左侧红色粗边条 -->
+            border-left: 3px solid var(--sig-red);   <!-- 左边框 3 像素红色 -->
+            padding-left: 15px;   <!-- 左侧内边距 15 像素 -->
+        }   <!-- 结束 -->
+        .border-green {   <!-- 工具类：左侧绿色粗边条 -->
+            border-left: 3px solid var(--sig-green);   <!-- 左边框 3 像素绿色 -->
+            padding-left: 15px;   <!-- 左侧内边距 15 像素 -->
+        }   <!-- 结束 -->
+        .border-blue {   <!-- 工具类：左侧蓝色粗边条 -->
+            border-left: 3px solid var(--sig-blue);   <!-- 左边框 3 像素蓝色 -->
+            padding-left: 15px;   <!-- 左侧内边距 15 像素 -->
+        }   <!-- 结束 -->
+
+        /* 注释：开关 & 按钮 */
+        .mode-section {   <!-- 操作模式区容器 -->
+            flex: 1;   <!-- 占满剩余空间 -->
+            display: flex;   <!-- 纵向弹性布局 -->
+            flex-direction: column;   <!-- 主轴纵向 -->
+            justify-content: space-around;   <!-- 内容纵向均匀分布 -->
+        }   <!-- 结束 .mode-section 规则 -->
+        .mode-row {   <!-- 单行模式项 -->
+            display: flex;   <!-- 名称与开关两端排列 -->
+            align-items: center;   <!-- 垂直居中 -->
+            justify-content: space-between;   <!-- 两端对齐 -->
+            padding: 8px 0;   <!-- 上下内边距 8 像素 -->
+            border-top: 1px solid rgba(255, 255, 255, 0.04);   <!-- 顶部极淡分隔线 -->
+        }   <!-- 结束 .mode-row 规则 -->
+        .mode-row:first-child {   <!-- 第一行模式项 -->
+            border-top: none;   <!-- 去掉顶部边框 -->
+        }   <!-- 结束 first-child 规则 -->
+        .mode-label {   <!-- 模式项名称 -->
+            font-size: 13px;   <!-- 字号 13 像素（注释：放大） -->
+            color: var(--text-secondary);   <!-- 颜色白色 -->
+            font-weight: 500;   <!-- 字重 500 -->
+        }   <!-- 结束 .mode-label 规则 -->
+
+        .toggle-track {   <!-- 开关轨道容器 -->
+            position: relative;   <!-- 相对定位，供滑块和背景定位 -->
+            width: 44px;   <!-- 宽 44 像素 -->
+            height: 22px;   <!-- 高 22 像素 -->
+            flex-shrink: 0;   <!-- 不缩小 -->
+        }   <!-- 结束 .toggle-track 规则 -->
+        .toggle-track input {   <!-- 隐藏的原生复选框 -->
+            opacity: 0;   <!-- 完全透明，看不见 -->
+            width: 0;   <!-- 宽度设为 0，不占布局空间 -->
+            height: 0;   <!-- 高度设为 0，不占布局空间 -->
+        }   <!-- 结束 input 规则 -->
+        .toggle-bg {   <!-- 开关的背景轨道 -->
+            position: absolute;   <!-- 绝对定位铺满容器 -->
+            inset: 0;   <!-- 四边都贴齐父容器 -->
+            background: var(--bg-input);   <!-- 默认深色背景 -->
+            border: 1px solid var(--border);   <!-- 1 像素边框 -->
+            cursor: pointer;   <!-- 手型光标 -->
+            transition: all 0.2s;   <!-- 0.2 秒过渡动画 -->
+            border-radius: 11px;   <!-- 大圆角，呈胶囊形 -->
+        }   <!-- 结束 .toggle-bg 规则 -->
+        .toggle-bg::after {   <!-- 开关的圆形滑块（伪元素） -->
+            content: '';   <!-- 必须为空内容才能渲染伪元素 -->
+            position: absolute;   <!-- 绝对定位 -->
+            width: 16px;   <!-- 滑块宽 16 像素 -->
+            height: 16px;   <!-- 滑块高 16 像素 -->
+            left: 2px;   <!-- 距左侧 2 像素（关闭位） -->
+            top: 2px;   <!-- 距顶部 2 像素，垂直居中 -->
+            background: var(--text-dim);   <!-- 滑块默认颜色 -->
+            transition: all 0.2s;   <!-- 0.2 秒过渡，滑动平滑 -->
+            border-radius: 50%;   <!-- 圆形 -->
+        }   <!-- 结束 ::after 规则 -->
+        .toggle-track input:checked+.toggle-bg {   <!-- 复选框被勾选时，其相邻背景轨道 -->
+            background: var(--sig-green);   <!-- 背景变绿色，表示开启 -->
+            border-color: var(--sig-green);   <!-- 边框同步变绿 -->
+        }   <!-- 结束 checked 规则 -->
+        .toggle-track input:checked+.toggle-bg::after {   <!-- 勾选时滑块位置 -->
+            left: 24px;   <!-- 滑块滑到右侧（开启位） -->
+            background: #fff;   <!-- 滑块变白色 -->
+        }   <!-- 结束 checked::after 规则 -->
+
+        .btn-block {   <!-- 全宽块状按钮基础样式 -->
+            display: block;   <!-- 块级元素，占一整行 -->
+            width: 100%;   <!-- 宽度填满父容器 -->
+            padding: 10px 0;   <!-- 上下内边距 10 像素（注释：放大） -->
+            border: 1px solid var(--border);   <!-- 1 像素边框 -->
+            font-size: 13px;   <!-- 字号 13 像素（注释：放大） -->
+            font-weight: 600;   <!-- 字重 600 -->
+            letter-spacing: 1.5px;   <!-- 字符间距 1.5 像素 -->
+            cursor: pointer;   <!-- 手型光标 -->
+            text-align: center;   <!-- 文字居中 -->
+            transition: all 0.15s;   <!-- 0.15 秒过渡 -->
+            font-family: var(--font-sans);   <!-- 无衬线字体 -->
+            margin-top: 6px;   <!-- 顶部留 6 像素 -->
+            border-radius: 2px;   <!-- 圆角 2 像素 -->
+        }   <!-- 结束 .btn-block 规则 -->
+        .btn-block.btn-estop {   <!-- 急停按钮变体 -->
+            background: #2a1f1e;   <!-- 暗红褐色背景 -->
+            color: var(--sig-red);   <!-- 红色文字 -->
+            border-color: #4a302e;   <!-- 暗红色边框 -->
+        }   <!-- 结束 btn-estop 规则 -->
+        .btn-block.btn-estop:hover {   <!-- 急停按钮悬停态 -->
+            background: #3a2625;   <!-- 背景更亮的红褐色 -->
+            border-color: #6a3a36;   <!-- 边框更亮 -->
+        }   <!-- 结束 hover 规则 -->
+        .btn-block.btn-reset {   <!-- 复位按钮变体 -->
+            background: var(--bg-input);   <!-- 深色背景 -->
+            color: var(--text-secondary);   <!-- 白色文字 -->
+        }   <!-- 结束 btn-reset 规则 -->
+        .btn-block.btn-reset:hover {   <!-- 复位按钮悬停态 -->
+            background: #2c2e31;   <!-- 背景微亮 -->
+            color: var(--text-primary);   <!-- 文字保持白色 -->
+            border-color: var(--border-active);   <!-- 边框变亮 -->
+        }   <!-- 结束 hover 规则 -->
+
+        /* 注释：键盘快捷键提示区 */
+        .key-hints {   <!-- 快捷键提示网格容器 -->
+            display: grid;   <!-- 网格布局 -->
+            grid-template-columns: 1fr 1fr;   <!-- 两列等宽 -->
+            gap: 4px 12px;   <!-- 行间距 4、列间距 12 像素 -->
+            font-size: 12px;   <!-- 字号 12 像素（注释：放大 10→12） -->
+            color: var(--text-dim);   <!-- 文字弱化白 -->
+            flex: 1;   <!-- 占满剩余空间 -->
+            align-content: center;   <!-- 网格内容整体垂直居中 -->
+        }   <!-- 结束 .key-hints 规则 -->
+        .key-hints span {   <!-- 提示里的按键名样式 -->
+            font-family: var(--font-mono);   <!-- 等宽字体显示按键 -->
+            color: var(--text-secondary);   <!-- 按键名更醒目 -->
+            font-weight: 500;   <!-- 字重 500 -->
+        }   <!-- 结束 span 规则 -->
+
+        /* 注释块：BOTTOM——动画区域 */
+        .bottom-panel {   <!-- 底部动画面板 -->
+            grid-column: 1 / -1;   <!-- 横跨网格所有列 -->
+            display: flex;   <!-- 纵向弹性布局 -->
+            flex-direction: column;   <!-- 主轴纵向 -->
+            min-height: 200px;   <!-- 最小高度 200 像素 -->
+            max-height: 280px;   <!-- 最大高度 280 像素 -->
+            padding: 12px 14px;   <!-- 内边距上下 12、左右 14 像素 -->
+        }   <!-- 结束 .bottom-panel 规则 -->
+        .canvas-wrap {   <!-- 画布包裹容器 -->
+            flex: 1;   <!-- 占满剩余空间 -->
+            min-height: 0;   <!-- 允许收缩 -->
+            background: #111213;   <!-- 近黑背景 -->
+            border: 1px solid rgba(255, 255, 255, 0.03);   <!-- 极淡边框 -->
+            border-radius: 2px;   <!-- 圆角 2 像素 -->
+            overflow: hidden;   <!-- 溢出隐藏，保证画布圆角内显示 -->
+        }   <!-- 结束 .canvas-wrap 规则 -->
+        .canvas-wrap canvas {   <!-- 动画画布元素 -->
+            width: 100%;   <!-- 宽度填满容器 -->
+            height: 100%;   <!-- 高度填满容器 -->
+            display: block;   <!-- 块级显示，去除行内间隙 -->
+        }   <!-- 结束 canvas 规则 -->
+        .anim-bar {   <!-- 动画控制条 -->
+            display: flex;   <!-- 横向排列按钮和控件 -->
+            align-items: center;   <!-- 垂直居中 -->
+            gap: 8px;   <!-- 子元素间距 8 像素 -->
+            padding-top: 8px;   <!-- 顶部内边距 8 像素 -->
+            flex-shrink: 0;   <!-- 不压缩 -->
+        }   <!-- 结束 .anim-bar 规则 -->
+        .anim-btn {   <!-- 动画控制按钮 -->
+            padding: 6px 14px;   <!-- 内边距上下 6、左右 14 像素 -->
+            border: 1px solid var(--border);   <!-- 1 像素边框 -->
+            background: var(--bg-input);   <!-- 深色背景 -->
+            color: var(--text-secondary);   <!-- 白色文字 -->
+            cursor: pointer;   <!-- 手型光标 -->
+            font-size: 12px;   <!-- 字号 12 像素 -->
+            letter-spacing: 1px;   <!-- 字符间距 1 像素 -->
+            transition: all 0.15s;   <!-- 0.15 秒过渡 -->
+            font-family: var(--font-sans);   <!-- 无衬线字体 -->
+            border-radius: 2px;   <!-- 圆角 2 像素 -->
+        }   <!-- 结束 .anim-btn 规则 -->
+        .anim-btn:hover {   <!-- 动画按钮悬停态 -->
+            border-color: var(--border-active);   <!-- 边框变亮 -->
+            color: var(--text-primary);   <!-- 文字变亮 -->
+        }   <!-- 结束 hover 规则 -->
+        .anim-btn.active {   <!-- 动画按钮激活态（运行中） -->
+            border-color: var(--sig-yellow);   <!-- 黄色边框 -->
+            color: var(--sig-yellow);   <!-- 黄色文字 -->
+            background: #252218;   <!-- 偏黄褐色背景 -->
+        }   <!-- 结束 active 规则 -->
+
+        .anim-speed-slider {   <!-- 速度滑块样式 -->
+            -webkit-appearance: none;   <!-- 去掉 WebKit 默认外观，便于自定义 -->
+            width: 72px;   <!-- 宽 72 像素 -->
+            height: 4px;   <!-- 轨道高 4 像素 -->
+            background: var(--border);   <!-- 轨道背景暗灰 -->
+            outline: none;   <!-- 去掉焦点外框 -->
+            cursor: pointer;   <!-- 手型光标 -->
+            border-radius: 2px;   <!-- 圆角 2 像素 -->
+        }   <!-- 结束 slider 规则 -->
+        .anim-speed-slider::-webkit-slider-thumb {   <!-- 滑块上的拖动手柄（WebKit） -->
+            -webkit-appearance: none;   <!-- 去掉默认手柄外观 -->
+            width: 14px;   <!-- 手柄宽 14 像素 -->
+            height: 14px;   <!-- 手柄高 14 像素 -->
+            background: var(--sig-yellow);   <!-- 手柄黄色 -->
+            cursor: pointer;   <!-- 手型光标 -->
+            border-radius: 50%;   <!-- 圆形手柄 -->
+        }   <!-- 结束 thumb 规则 -->
+        .speed-label {   <!-- 速度倍率标签 -->
+            font-size: 12px;   <!-- 字号 12 像素 -->
+            font-family: var(--font-mono);   <!-- 等宽字体 -->
+            color: var(--text-dim);   <!-- 弱化白 -->
+            min-width: 32px;   <!-- 最小宽 32 像素，防止跳动 -->
+            font-weight: 500;   <!-- 字重 500 -->
+        }   <!-- 结束 .speed-label 规则 -->
+
+        .phase-dots {   <!-- 阶段指示点容器 -->
+            display: flex;   <!-- 横向排列阶段标签和圆点 -->
+            align-items: center;   <!-- 垂直居中 -->
+            gap: 4px;   <!-- 子元素间距 4 像素 -->
+            margin-left: auto;   <!-- 推到控制条最右侧 -->
+        }   <!-- 结束 .phase-dots 规则 -->
+        .phase-tag {   <!-- 阶段名称小标签 -->
+            font-size: 10px;   <!-- 字号 10 像素 -->
+            color: var(--text-dim);   <!-- 弱化白 -->
+            letter-spacing: 1px;   <!-- 字符间距 1 像素 -->
+        }   <!-- 结束 .phase-tag 规则 -->
+        .phase-dot {   <!-- 阶段状态圆点 -->
+            width: 8px;   <!-- 宽 8 像素 -->
+            height: 8px;   <!-- 高 8 像素 -->
+            background: var(--bg-input);   <!-- 默认深灰（未激活） -->
+            border: 1px solid var(--border);   <!-- 1 像素边框 -->
+            border-radius: 50%;   <!-- 圆形 -->
+            transition: all 0.2s;   <!-- 0.2 秒过渡 -->
+        }   <!-- 结束 .phase-dot 规则 -->
+        .phase-dot.on.yellow {   <!-- 激活且为黄色（导向阶段） -->
+            background: var(--sig-yellow);   <!-- 黄色填充 -->
+            border-color: var(--sig-yellow);   <!-- 黄色边框 -->
+        }   <!-- 结束 -->
+        .phase-dot.on.orange {   <!-- 激活且为橙色（扩孔阶段） -->
+            background: var(--sig-orange);   <!-- 橙色填充 -->
+            border-color: var(--sig-orange);   <!-- 橙色边框 -->
+        }   <!-- 结束 -->
+        .phase-dot.on.green {   <!-- 激活且为绿色（回拖阶段） -->
+            background: var(--sig-green);   <!-- 绿色填充 -->
+            border-color: var(--sig-green);   <!-- 绿色边框 -->
+        }   <!-- 结束 -->
+
+        /* 注释块：ALERT FLASH（偏差超标闪烁） */
+        .alert-border {   <!-- 报警时给面板加的闪烁类 -->
+            animation: alertBorder 0.6s ease-in-out 4;   <!-- 播放 alertBorder 动画：0.6 秒、缓入缓出、重复 4 次 -->
+        }   <!-- 结束 .alert-border 规则 -->
+        @keyframes alertBorder {   <!-- 定义边框闪烁动画 -->
+            0%,   <!-- 动画起始帧（与 100% 帧共享样式） -->
+            100% {   <!-- 动画结束帧 -->
+                border-color: var(--border);   <!-- 边框恢复默认暗灰 -->
+            }   <!-- 结束 0%/100% 帧 -->
+            50% {   <!-- 动画中点帧 -->
+                border-color: var(--sig-red);   <!-- 边框闪红，提示报警 -->
+            }   <!-- 结束 50% 帧 -->
+        }   <!-- 结束 @keyframes -->
+
+        /* 注释：滚动条样式 */
+        .left-panel::-webkit-scrollbar,   <!-- 左侧栏滚动条整体（与右侧栏共享样式） -->
+        .right-panel::-webkit-scrollbar {   <!-- 右侧栏滚动条整体 -->
+            width: 4px;   <!-- 滚动条宽 4 像素 -->
+        }   <!-- 结束规则 -->
+        .left-panel::-webkit-scrollbar-track,   <!-- 左侧栏滚动条轨道（与右侧共享） -->
+        .right-panel::-webkit-scrollbar-track {   <!-- 右侧栏滚动条轨道 -->
+            background: transparent;   <!-- 轨道透明 -->
+        }   <!-- 结束规则 -->
+        .left-panel::-webkit-scrollbar-thumb,   <!-- 左侧栏滚动条滑块（与右侧共享） -->
+        .right-panel::-webkit-scrollbar-thumb {   <!-- 右侧栏滚动条滑块 -->
+            background: var(--border);   <!-- 滑块暗灰色 -->
+            border-radius: 2px;   <!-- 圆角 2 像素 -->
+        }   <!-- 结束规则 -->
+        .left-panel::-webkit-scrollbar-thumb:hover,   <!-- 左侧栏滑块悬停（与右侧共享） -->
+        .right-panel::-webkit-scrollbar-thumb:hover {   <!-- 右侧栏滑块悬停 -->
+            background: var(--border-active);   <!-- 悬停时滑块变亮 -->
+        }   <!-- 结束规则 -->
+
+        /* 注释块：RESPONSIVE 响应式适配 */
+        @media (max-width: 1400px) {   <!-- 屏幕宽度不超过 1400 像素时生效 -->
+            .main-grid {   <!-- 主网格调整 -->
+                grid-template-columns: 320px 1fr 320px;   <!-- 左右栏缩窄为 320 像素 -->
+            }   <!-- 结束 -->
+            .param-val {   <!-- 参数数值调整 -->
+                font-size: 32px;   <!-- 字号降为 32 像素 -->
+            }   <!-- 结束 -->
+            .stepper-display {   <!-- 步进显示屏调整 -->
+                font-size: 34px;   <!-- 字号降为 34 像素 -->
+            }   <!-- 结束 -->
+            .deviation-header .param-val {   <!-- 偏差数值调整 -->
+                font-size: 32px;   <!-- 字号降为 32 像素 -->
+            }   <!-- 结束 -->
+        }   <!-- 结束 1400px 媒体查询 -->
+        @media (max-width: 1200px) {   <!-- 屏幕宽度不超过 1200 像素时生效 -->
+            .main-grid {   <!-- 主网格调整 -->
+                grid-template-columns: 280px 1fr 280px;   <!-- 左右栏进一步缩窄为 280 像素 -->
+            }   <!-- 结束 -->
+            .param-val {   <!-- 参数数值 -->
+                font-size: 28px;   <!-- 字号降为 28 像素 -->
+            }   <!-- 结束 -->
+            .stepper-display {   <!-- 步进显示屏 -->
+                font-size: 30px;   <!-- 字号降为 30 像素 -->
+            }   <!-- 结束 -->
+            .deviation-header .param-val {   <!-- 偏差数值 -->
+                font-size: 28px;   <!-- 字号降为 28 像素 -->
+            }   <!-- 结束 -->
+            .control-readout {   <!-- 控制读数 -->
+                font-size: 22px;   <!-- 字号降为 22 像素 -->
+            }   <!-- 结束 -->
+            .stepper-btn {   <!-- 步进按钮 -->
+                width: 36px;   <!-- 宽降为 36 像素 -->
+                height: 36px;   <!-- 高降为 36 像素 -->
+                font-size: 17px;   <!-- 符号字号降为 17 像素 -->
+            }   <!-- 结束 -->
+        }   <!-- 结束 1200px 媒体查询 -->
+        @media (max-width: 1000px) {   <!-- 屏幕宽度不超过 1000 像素（窄屏/平板）时生效 -->
+            html,   <!-- html 元素 -->
+            body {   <!-- body 元素 -->
+                overflow: auto;   <!-- 允许整体滚动，改为移动端式布局 -->
+            }   <!-- 结束 -->
+            .main-grid {   <!-- 主网格改为单列 -->
+                grid-template-columns: 1fr;   <!-- 只有一列，占满宽度 -->
+                grid-template-rows: auto auto 1fr auto;   <!-- 四行：左右栏、中间、底部 -->
+                height: auto;   <!-- 高度由内容决定 -->
+                overflow: visible;   <!-- 内容不裁剪 -->
+            }   <!-- 结束 -->
+            .left-panel,   <!-- 左侧栏（与右侧栏共享） -->
+            .right-panel {   <!-- 右侧栏 -->
+                flex-direction: row;   <!-- 改为横向排列 -->
+                flex-wrap: wrap;   <!-- 面板超出宽度时换行 -->
+                overflow-y: visible;   <!-- 纵向不滚动 -->
+                max-height: none;   <!-- 取消最大高度限制 -->
+            }   <!-- 结束 -->
+            .left-panel .panel,   <!-- 左侧栏内面板（与右侧共享） -->
+            .right-panel .panel {   <!-- 右侧栏内面板 -->
+                flex: 1 1 200px;   <!-- 基础宽 200 像素，可伸缩换行 -->
+                min-width: 180px;   <!-- 最小宽 180 像素 -->
+            }   <!-- 结束 -->
+            #svgVis {   <!-- 剖面图 SVG -->
+                min-height: 300px;   <!-- 最小高 300 像素，保证可见 -->
+            }   <!-- 结束 -->
+            .bottom-panel {   <!-- 底部动画面板 -->
+                min-height: 240px;   <!-- 最小高 240 像素 -->
+                max-height: 360px;   <!-- 最大高 360 像素 -->
+            }   <!-- 结束 -->
+            .param-val {   <!-- 参数数值 -->
+                font-size: 28px;   <!-- 字号 28 像素 -->
+            }   <!-- 结束 -->
+            .stepper-display {   <!-- 步进显示屏 -->
+                font-size: 30px;   <!-- 字号 30 像素 -->
+            }   <!-- 结束 -->
+            .deviation-header .param-val {   <!-- 偏差数值 -->
+                font-size: 28px;   <!-- 字号 28 像素 -->
+            }   <!-- 结束 -->
+        }   <!-- 结束 1000px 媒体查询 -->
+    </style>   <!-- 内嵌样式表结束 -->
+</head>   <!-- 头部区域结束 -->
+<body>   <!-- 页面可见内容开始 -->
+
+    <!-- 注释：HEADER 顶栏开始 -->
+    <header class="header">   <!-- 顶栏容器，应用 .header 样式 -->
+        <div class="header-brand">   <!-- 品牌区（logo+标题）容器 -->
+            <div class="header-logo">   <!-- logo 方框 -->
+                <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>   <!-- 内嵌一个分层菱形图标（SVG 矢量图） -->
+            </div>   <!-- logo 方框结束 -->
+            <div class="header-title">MGS<em>·</em>磁性有线控制系统 — 水平定向钻导向界面</div>   <!-- 系统标题文字，中间用黄色·分隔 -->
+        </div>   <!-- 品牌区结束 -->
+        <div class="header-status">   <!-- 右侧状态信息区 -->
+            <div class="status-indicator"><span class="status-lamp online"></span> 系统在线</div>   <!-- 绿灯+“系统在线” -->
+            <div class="status-indicator"><span class="status-lamp online"></span> 信号 <strong>97%</strong></div>   <!-- 绿灯+信号强度 97% -->
+            <div class="header-stat">探棒 <strong>42°C</strong></div>   <!-- 探棒温度 42°C -->
+            <div class="header-stat">SYS <strong>v3.2.1</strong></div>   <!-- 系统版本号 v3.2.1 -->
+        </div>   <!-- 状态区结束 -->
+    </header>   <!-- 顶栏结束 -->
+
+    <!-- 注释：主网格区域开始 -->
+    <div class="main-grid">   <!-- 主内容网格容器 -->
+
+        <!-- 注释：左侧——实时参数 -->
+        <div class="left-panel">   <!-- 左侧参数栏 -->
+
+            <div class="panel border-yellow">   <!-- 黄色边条面板：核心姿态参数 -->
+                <div class="panel-header">   <!-- 面板标题栏 -->
+                    <span class="pip yellow"></span>   <!-- 黄色小指示点 -->
+                    <span class="panel-label">核心姿态参数</span>   <!-- 面板标题文字 -->
+                </div>   <!-- 标题栏结束 -->
+                <div class="param-group">   <!-- 参数组 -->
+                    <div class="param-item">   <!-- 参数行：工具面角 -->
+                        <span class="param-key">工具面角 Tool Face</span>   <!-- 参数名 -->
+                        <span class="param-val-wrap"><span class="param-val" id="valToolFace">0.0</span><span class="param-unit">°</span></span>   <!-- 数值(初始0.0)+单位°，由JS更新 -->
+                    </div>   <!-- 参数行结束 -->
+                    <div class="param-item">   <!-- 参数行：方位角 -->
+                        <span class="param-key">方位角 Azimuth</span>   <!-- 参数名 -->
+                        <span class="param-val-wrap"><span class="param-val" id="valAzimuth">0.0</span><span class="param-unit">°</span></span>   <!-- 数值(0.0)+单位° -->
+                    </div>   <!-- 参数行结束 -->
+                    <div class="param-item">   <!-- 参数行：倾斜角 -->
+                        <span class="param-key">倾斜角 Inclination</span>   <!-- 参数名 -->
+                        <span class="param-val-wrap"><span class="param-val" id="valInclination">15.0</span><span class="param-unit">°</span></span>   <!-- 数值(15.0)+单位° -->
+                    </div>   <!-- 参数行结束 -->
+                </div>   <!-- 参数组结束 -->
+            </div>   <!-- 面板结束 -->
+
+            <div class="panel border-blue">   <!-- 蓝色边条面板：钻进状态 -->
+                <div class="panel-header">   <!-- 面板标题栏 -->
+                    <span class="pip blue"></span>   <!-- 蓝色指示点 -->
+                    <span class="panel-label">钻进状态</span>   <!-- 面板标题 -->
+                </div>   <!-- 标题栏结束 -->
+                <div class="param-group">   <!-- 参数组 -->
+                    <div class="param-item">   <!-- 参数行：当前深度 -->
+                        <span class="param-key">当前深度</span>   <!-- 参数名 -->
+                        <span class="param-val-wrap"><span class="param-val" id="valDepth">0.0</span><span class="param-unit">m</span></span>   <!-- 数值(0.0)+单位米 -->
+                    </div>   <!-- 参数行结束 -->
+                    <div class="param-item">   <!-- 参数行：行程长度 -->
+                        <span class="param-key">行程长度</span>   <!-- 参数名 -->
+                        <span class="param-val-wrap"><span class="param-val" id="valTravel">0.0</span><span class="param-unit">m</span></span>   <!-- 数值(0.0)+单位米 -->
+                    </div>   <!-- 参数行结束 -->
+                    <div class="param-item">   <!-- 参数行：钻进进度 -->
+                        <span class="param-key">钻进进度</span>   <!-- 参数名 -->
+                        <span class="param-val-wrap"><span class="param-val" id="valProgress">0</span><span class="param-unit">%</span></span>   <!-- 数值(0)+单位% -->
+                    </div>   <!-- 参数行结束 -->
+                </div>   <!-- 参数组结束 -->
+            </div>   <!-- 面板结束 -->
+
+            <div class="panel border-red" id="deviationPanel">   <!-- 红色边条面板：偏差监控，带id供JS操作 -->
+                <div class="panel-header">   <!-- 面板标题栏 -->
+                    <span class="pip red"></span>   <!-- 红色指示点 -->
+                    <span class="panel-label">轨迹偏差监控</span>   <!-- 面板标题 -->
+                </div>   <!-- 标题栏结束 -->
+                <div class="deviation-section">   <!-- 偏差显示区 -->
+                    <div class="deviation-header">   <!-- 偏差标题行 -->
+                        <span class="param-key">偏差距离</span>   <!-- 名称 -->
+                        <span class="param-val-wrap"><span class="param-val" id="valDeviation">0.000</span><span class="param-unit">m</span></span>   <!-- 偏差值(0.000)+单位米 -->
+                    </div>   <!-- 标题行结束 -->
+                    <div class="deviation-bar-outer">   <!-- 偏差条外轨道 -->
+                        <div class="deviation-bar-inner safe" id="devBar"></div>   <!-- 偏差条填充条，初始safe态，id供JS更新 -->
+                    </div>   <!-- 轨道结束 -->
+                    <div class="deviation-status safe" id="devStatus">◉ 偏差正常 — 在允许范围内</div>   <!-- 偏差状态文字，初始“正常” -->
+                </div>   <!-- 偏差区结束 -->
+            </div>   <!-- 面板结束 -->
+
+        </div>   <!-- 左侧栏结束 -->
+
+        <!-- 注释：中间——SVG 可视化 -->
+        <div class="panel center-panel">   <!-- 中间剖面图面板 -->
+            <div class="panel-header">   <!-- 面板标题栏 -->
+                <span class="pip steel"></span>   <!-- 钢灰色指示点 -->
+                <span class="panel-label">地下钻进轨迹 — 实时剖面视图</span>   <!-- 面板标题 -->
+            </div>   <!-- 标题栏结束 -->
+            <svg id="svgVis" viewBox="0 0 700 400" preserveAspectRatio="xMidYMid meet"></svg>   <!-- 空的SVG画布，坐标系700×400，内容由JS生成 -->
+        </div>   <!-- 中间面板结束 -->
+
+        <!-- 注释：右侧——微调控制 -->
+        <div class="right-panel">   <!-- 右侧控制栏 -->
+
+            <!-- 注释：工具面角控制 -->
+            <div class="panel border-yellow">   <!-- 黄色边条面板：工具面角微调 -->
+                <div class="panel-header">   <!-- 面板标题栏 -->
+                    <span class="pip yellow"></span>   <!-- 黄色指示点 -->
+                    <span class="panel-label">工具面角微调</span>   <!-- 面板标题 -->
+                </div>   <!-- 标题栏结束 -->
+                <div class="control-group">   <!-- 控制组 -->
+                    <div class="control-row">   <!-- 控制标题行 -->
+                        <span class="control-name">TOOL FACE ANGLE</span>   <!-- 英文名称 -->
+                        <span class="control-readout" id="dispToolFace">0.0°</span>   <!-- 当前读数显示 -->
+                    </div>   <!-- 标题行结束 -->
+                    <div class="stepper-row">   <!-- 步进按钮行 -->
+                        <button class="stepper-btn fine" onclick="adjustParam('toolFace',-0.1)" title="−0.1°">«</button>   <!-- 细减0.1°按钮 -->
+                        <button class="stepper-btn" onclick="adjustParam('toolFace',-1)" title="−1°">−</button>   <!-- 减1°按钮 -->
+                        <div class="stepper-display" id="ctrlToolFace">0.0</div>   <!-- 中间数字显示 -->
+                        <button class="stepper-btn" onclick="adjustParam('toolFace',1)" title="+1°">+</button>   <!-- 加1°按钮 -->
+                        <button class="stepper-btn fine" onclick="adjustParam('toolFace',0.1)" title="+0.1°">»</button>   <!-- 细加0.1°按钮 -->
+                    </div>   <!-- 步进行结束 -->
+                </div>   <!-- 控制组结束 -->
+            </div>   <!-- 面板结束 -->
+
+            <!-- 注释：方位角控制 -->
+            <div class="panel border-orange">   <!-- 橙色边条面板：方位角微调 -->
+                <div class="panel-header">   <!-- 面板标题栏 -->
+                    <span class="pip orange"></span>   <!-- 橙色指示点 -->
+                    <span class="panel-label">方位角微调</span>   <!-- 面板标题 -->
+                </div>   <!-- 标题栏结束 -->
+                <div class="control-group">   <!-- 控制组 -->
+                    <div class="control-row">   <!-- 控制标题行 -->
+                        <span class="control-name">AZIMUTH</span>   <!-- 英文名称 -->
+                        <span class="control-readout" id="dispAzimuth">0.0°</span>   <!-- 当前读数 -->
+                    </div>   <!-- 标题行结束 -->
+                    <div class="stepper-row">   <!-- 步进按钮行 -->
+                        <button class="stepper-btn fine" onclick="adjustParam('azimuth',-0.1)">«</button>   <!-- 细减0.1° -->
+                        <button class="stepper-btn" onclick="adjustParam('azimuth',-1)">−</button>   <!-- 减1° -->
+                        <div class="stepper-display" id="ctrlAzimuth">0.0</div>   <!-- 数字显示 -->
+                        <button class="stepper-btn" onclick="adjustParam('azimuth',1)">+</button>   <!-- 加1° -->
+                        <button class="stepper-btn fine" onclick="adjustParam('azimuth',0.1)">»</button>   <!-- 细加0.1° -->
+                    </div>   <!-- 步进行结束 -->
+                </div>   <!-- 控制组结束 -->
+            </div>   <!-- 面板结束 -->
+
+            <!-- 注释：倾斜角控制 -->
+            <div class="panel border-blue" style="border-left-color:var(--sig-steel);">   <!-- 倾斜角面板，内联样式把左边条改成钢灰色 -->
+                <div class="panel-header">   <!-- 面板标题栏 -->
+                    <span class="pip steel"></span>   <!-- 钢灰色指示点 -->
+                    <span class="panel-label">倾斜角微调</span>   <!-- 面板标题 -->
+                </div>   <!-- 标题栏结束 -->
+                <div class="control-group">   <!-- 控制组 -->
+                    <div class="control-row">   <!-- 控制标题行 -->
+                        <span class="control-name">INCLINATION</span>   <!-- 英文名称 -->
+                        <span class="control-readout" id="dispInclination">15.0°</span>   <!-- 当前读数 -->
+                    </div>   <!-- 标题行结束 -->
+                    <div class="stepper-row">   <!-- 步进按钮行 -->
+                        <button class="stepper-btn fine" onclick="adjustParam('inclination',-0.1)">«</button>   <!-- 细减0.1° -->
+                        <button class="stepper-btn" onclick="adjustParam('inclination',-1)">−</button>   <!-- 减1° -->
+                        <div class="stepper-display" id="ctrlInclination">15.0</div>   <!-- 数字显示 -->
+                        <button class="stepper-btn" onclick="adjustParam('inclination',1)">+</button>   <!-- 加1° -->
+                        <button class="stepper-btn fine" onclick="adjustParam('inclination',0.1)">»</button>   <!-- 细加0.1° -->
+                    </div>   <!-- 步进行结束 -->
+                </div>   <!-- 控制组结束 -->
+            </div>   <!-- 面板结束 -->
+
+            <!-- 注释：操作模式 & 急停 -->
+            <div class="panel" style="border-left:3px solid var(--border-active);padding-left:15px;">   <!-- 操作模式面板，内联样式加灰色左边条 -->
+                <div class="panel-header">   <!-- 面板标题栏 -->
+                    <span class="pip steel"></span>   <!-- 钢灰色指示点 -->
+                    <span class="panel-label">操作模式</span>   <!-- 面板标题 -->
+                </div>   <!-- 标题栏结束 -->
+                <div class="mode-section">   <!-- 模式区 -->
+                    <div class="mode-row">   <!-- 模式行：自动纠偏开关 -->
+                        <span class="mode-label">自动纠偏</span>   <!-- 名称 -->
+                        <label class="toggle-track">   <!-- 开关容器 -->
+                            <input type="checkbox" id="toggleAuto" onchange="toggleAutoCorrect()">   <!-- 隐藏复选框，勾选变化触发自动纠偏 -->
+                            <span class="toggle-bg"></span>   <!-- 开关背景轨道 -->
+                        </label>   <!-- 开关容器结束 -->
+                    </div>   <!-- 模式行结束 -->
+                    <div class="mode-row">   <!-- 模式行：告警状态显示 -->
+                        <span class="mode-label">偏差告警状态</span>   <!-- 名称 -->
+                        <span style="font-size:13px;font-family:var(--font-mono);color:var(--sig-green);font-weight:600;" id="alarmStatus">NORMAL</span>   <!-- 当前告警状态文字，初始NORMAL -->
+                    </div>   <!-- 模式行结束 -->
+                </div>   <!-- 模式区结束 -->
+                <button class="btn-block btn-estop" id="btnEstop" onclick="emergencyStop()">   <!-- 急停按钮，点击触发急停 -->
+                    ▮ 紧 急 停 钻   <!-- 按钮文字 -->
+                </button>   <!-- 急停按钮结束 -->
+                <button class="btn-block btn-reset" onclick="resetToTarget()">   <!-- 复位按钮，点击复位到设计轨迹 -->
+                    ↻ 复位至设计轨迹   <!-- 按钮文字 -->
+                </button>   <!-- 复位按钮结束 -->
+            </div>   <!-- 面板结束 -->
+
+            <!-- 注释：键盘快捷键提示 -->
+            <div class="panel" style="border-left:3px solid rgba(255,255,255,0.06);padding-left:15px;">   <!-- 快捷键面板，极淡左边条 -->
+                <div class="panel-header">   <!-- 面板标题栏 -->
+                    <span class="pip" style="background:var(--text-dim)"></span>   <!-- 白色小指示点 -->
+                    <span class="panel-label">键盘快捷键</span>   <!-- 面板标题 -->
+                </div>   <!-- 标题栏结束 -->
+                <div class="key-hints">   <!-- 快捷键提示网格 -->
+                    <div><span>↑↓</span> 倾斜角 ±0.1°</div>   <!-- 上下方向键调倾斜角 -->
+                    <div><span>←→</span> 方位角 ±0.1°</div>   <!-- 左右方向键调方位角 -->
+                    <div><span>Sh+↑↓</span> 工具面角</div>   <!-- Shift+上下键调工具面角 -->
+                    <div><span>A</span> 自动纠偏</div>   <!-- A 键切换自动纠偏 -->
+                    <div><span>Space</span> 动画启停</div>   <!-- 空格键启停动画 -->
+                    <div><span>R</span> 重置动画</div>   <!-- R 键重置动画 -->
+                </div>   <!-- 提示网格结束 -->
+            </div>   <!-- 面板结束 -->
+        </div>   <!-- 右侧栏结束 -->
+
+        <!-- 注释：底部——施工动画 -->
+        <div class="panel bottom-panel">   <!-- 底部动画面板 -->
+            <div class="panel-header">   <!-- 面板标题栏 -->
+                <span class="pip steel"></span>   <!-- 钢灰色指示点 -->
+                <span class="panel-label">水平定向钻施工过程模拟</span>   <!-- 面板标题 -->
+            </div>   <!-- 标题栏结束 -->
+            <div class="canvas-wrap">   <!-- 画布包裹容器 -->
+                <canvas id="animCanvas"></canvas>   <!-- 动画画布，由JS绘制施工过程 -->
+            </div>   <!-- 画布容器结束 -->
+            <div class="anim-bar">   <!-- 动画控制条 -->
+                <button class="anim-btn" id="btnStart" onclick="toggleAnimation()">▶ 开始</button>   <!-- 开始/暂停按钮 -->
+                <button class="anim-btn" onclick="resetAnimation()">↺ 重置</button>   <!-- 重置按钮 -->
+                <button class="anim-btn" id="btnPhase" onclick="cyclePhase()">导向钻进</button>   <!-- 切换阶段按钮 -->
+                <span style="font-size:11px;color:var(--text-dim);margin-left:6px;">速度</span>   <!-- “速度”标签 -->
+                <input type="range" class="anim-speed-slider" min="0.25" max="3" step="0.25" value="1" oninput="setSpeed(this.value)">   <!-- 速度滑块，0.25~3倍，拖动调速度 -->
+                <span class="speed-label" id="speedLabel">1×</span>   <!-- 当前速度倍率显示 -->
+                <div class="phase-dots">   <!-- 阶段指示点容器 -->
+                    <span class="phase-tag">导向</span><span class="phase-dot on yellow" id="dotPilot"></span>   <!-- 导向阶段标签+激活黄点 -->
+                    <span class="phase-tag">扩孔</span><span class="phase-dot" id="dotReam"></span>   <!-- 扩孔阶段标签+圆点 -->
+                    <span class="phase-tag">回拖</span><span class="phase-dot" id="dotPull"></span>   <!-- 回拖阶段标签+圆点 -->
+                </div>   <!-- 指示点容器结束 -->
+            </div>   <!-- 控制条结束 -->
+        </div>   <!-- 底部面板结束 -->
+
+    </div>   <!-- 主网格结束 -->
+
+    <script>   <!-- JavaScript 脚本开始，所有交互逻辑写在这里 -->
+        /* 注释块：STATE 全局状态定义 */
+        const state = {   <!-- 定义一个对象保存所有运行状态 -->
+            toolFace: 0,   <!-- 工具面角初始值 0 度 -->
+            azimuth: 0,   <!-- 方位角初始值 0 度 -->
+            inclination: 15,   <!-- 倾斜角初始值 15 度 -->
+            targetToolFace: 0,   <!-- 工具面角目标值 0 度 -->
+            targetAzimuth: 0,   <!-- 方位角目标值 0 度 -->
+            targetInclination: 5,   <!-- 倾斜角目标值 5 度 -->
+            depth: 0,   <!-- 当前深度初始 0 米 -->
+            travelLength: 0,   <!-- 行程长度初始 0 米 -->
+            progress: 0,   <!-- 钻进进度初始 0% -->
+            deviation: 0,   <!-- 轨迹偏差初始 0 米 -->
+            autoCorrect: false,   <!-- 自动纠偏开关初始关闭 -->
+            estop: false,   <!-- 急停状态初始未触发 -->
+            deviationEventTriggered: false,   <!-- 偏差事件是否已触发过 -->
+            autoEstopActive: false,   <!-- 自动急停是否激活中 -->
+            isRunning: false,   <!-- 动画是否运行中 -->
+            speed: 1,   <!-- 动画速度倍率初始 1× -->
+            phase: 'pilot',   <!-- 当前施工阶段：pilot=导向钻进 -->
+            animTime: 0,   <!-- 动画累计时间初始 0 -->
+        };   <!-- 状态对象结束 -->
+
+        const designPath = [   <!-- 设计轨迹的关键点数组 -->
+            { x: 50, y: 60 }, { x: 120, y: 90 }, { x: 200, y: 140 },   <!-- 前三个设计轨迹点坐标 -->
+            { x: 300, y: 200 }, { x: 400, y: 240 }, { x: 500, y: 260 },   <!-- 中间三个设计轨迹点 -->
+            { x: 580, y: 270 }, { x: 650, y: 275 }   <!-- 最后两个设计轨迹点 -->
+        ];   <!-- 设计轨迹数组结束 -->
+        let actualPath = designPath.map(p => ({ ...p }));   <!-- 用设计轨迹复制一份作为实际轨迹初始值 -->
+
+        /* 注释块：UTILS 工具函数 */
+        function clamp(v, mn, mx) { return Math.max(mn, Math.min(mx, v)); }   <!-- 限制数值 v 在最小值 mn 和最大值 mx 之间 -->
+
+        /* 注释块：CATMULL-ROM 样条——生成平滑轨迹 */
+        function catmullRomPoints(points, segmentsPerSegment) {   <!-- 定义样条插值函数，输入控制点和每段细分数量 -->
+            if (points.length < 2) return points.slice();   <!-- 点少于2个时直接返回副本，无需插值 -->
+            const seg = segmentsPerSegment || 24;   <!-- 每段细分数量，默认 24 -->
+            const result = [];   <!-- 用于存放插值结果的数组 -->
+            const pts = [   <!-- 构造扩展点数组，首尾各加一个镜像点保证曲线完整 -->
+                { x: points[0].x - (points[1].x - points[0].x) * 0.5, y: points[0].y - (points[1].y - points[0].y) * 0.5 },   <!-- 起点前的外推镜像点 -->
+                ...points,   <!-- 展开原始所有控制点 -->
+                { x: points[points.length - 1].x + (points[points.length - 1].x - points[points.length - 2].x) * 0.5,   <!-- 终点后的外推镜像点 x -->
+                    y: points[points.length - 1].y + (points[points.length - 1].y - points[points.length - 2].y) * 0.5 }   <!-- 终点后的外推镜像点 y -->
+            ];   <!-- 扩展点数组结束 -->
+            for (let i = 1; i < pts.length - 2; i++) {   <!-- 遍历每段曲线（需要前后共4个点） -->
+                const p0 = pts[i - 1],   <!-- 段前一个控制点 p0 -->
+                    p1 = pts[i],   <!-- 段起点 p1 -->
+                    p2 = pts[i + 1],   <!-- 段终点 p2 -->
+                    p3 = pts[i + 2];   <!-- 段后一个控制点 p3 -->
+                for (let t = 0; t < 1; t += 1 / seg) {   <!-- 在 0~1 之间按细分步长采样参数 t -->
+                    const t2 = t * t,   <!-- t 的平方 -->
+                        t3 = t2 * t;   <!-- t 的立方 -->
+                    const x = 0.5 * (   <!-- 计算插值点的 x 坐标（Catmull-Rom 公式） -->
+                        (2 * p1.x) + (-p0.x + p2.x) * t +   <!-- 一次项 -->
+                        (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +   <!-- 二次项 -->
+                        (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3   <!-- 三次项 -->
+                    );   <!-- x 坐标计算结束 -->
+                    const y = 0.5 * (   <!-- 计算插值点的 y 坐标 -->
+                        (2 * p1.y) + (-p0.y + p2.y) * t +   <!-- 一次项 -->
+                        (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +   <!-- 二次项 -->
+                        (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3   <!-- 三次项 -->
+                    );   <!-- y 坐标计算结束 -->
+                    result.push({ x, y });   <!-- 把插值点加入结果数组 -->
+                }   <!-- 内层采样循环结束 -->
+            }   <!-- 外层段循环结束 -->
+            result.push(points[points.length - 1]);   <!-- 末尾补上最后一个真实控制点 -->
+            return result;   <!-- 返回平滑后的点序列 -->
+        }   <!-- catmullRomPoints 函数结束 -->
+
+        /* 注释块：SVG 路径生成器 */
+        function buildPathD(pts, segPerSeg) {   <!-- 根据控制点生成 SVG 的 d 路径字符串 -->
+            if (!pts || pts.length < 2) return '';   <!-- 点不足时返回空字符串，避免报错 -->
+            const smooth = catmullRomPoints(pts, segPerSeg || 20);   <!-- 先做样条平滑，默认每段 20 个点 -->
+            let d = `M ${smooth[0].x.toFixed(2)} ${smooth[0].y.toFixed(2)}`;   <!-- 路径起点：M 移动到第一个点 -->
+            for (let i = 1; i < smooth.length; i++) {   <!-- 遍历后续所有平滑点 -->
+                d += ` L ${smooth[i].x.toFixed(2)} ${smooth[i].y.toFixed(2)}`;   <!-- 用 L 逐点连线，拼接到路径字符串 -->
+            }   <!-- 循环结束 -->
+            return d;   <!-- 返回完整 SVG 路径字符串 -->
+        }   <!-- buildPathD 函数结束 -->
+
+        /* 注释块：参数调整 */
+        function adjustParam(param, delta) {   <!-- 调整指定参数，增加 delta 的偏移量 -->
+            if (state.estop && !state.autoEstopActive) return;   <!-- 手动急停状态下禁止手动调整（自动急停除外） -->
+            switch (param) {   <!-- 根据参数名分发处理 -->
+                case 'toolFace':   <!-- 处理工具面角 -->
+                    state.toolFace = clamp(state.toolFace + delta, 0, 360);   <!-- 工具面角加偏移并限制在 0~360 度 -->
+                    break;   <!-- 结束 toolFace 分支 -->
+                case 'azimuth':   <!-- 处理方位角 -->
+                    state.azimuth = clamp(state.azimuth + delta, -45, 45);   <!-- 方位角加偏移并限制在 -45~45 度 -->
+                    break;   <!-- 结束 azimuth 分支 -->
+                case 'inclination':   <!-- 处理倾斜角 -->
+                    state.inclination = clamp(state.inclination + delta, 0, 60);   <!-- 倾斜角加偏移并限制在 0~60 度 -->
+                    break;   <!-- 结束 inclination 分支 -->
+            }   <!-- switch 结束 -->
+            updateDeviation();   <!-- 重新计算偏差 -->
+            updateAllDisplays();   <!-- 刷新所有数字显示 -->
+            updateSVG();   <!-- 刷新剖面图 -->
+        }   <!-- adjustParam 函数结束 -->
+
+        function toggleAutoCorrect() {   <!-- 切换自动纠偏开关 -->
+            state.autoCorrect = document.getElementById('toggleAuto').checked;   <!-- 读取复选框勾选状态存入 state -->
+        }   <!-- toggleAutoCorrect 结束 -->
+
+        function triggerDeviationEvent() {   <!-- 触发一次“偏差超标”事件（模拟异常） -->
+            state.deviationEventTriggered = true;   <!-- 标记事件已触发，防止重复 -->
+            state.autoEstopActive = true;   <!-- 进入自动急停状态 -->
+            state.estop = true;   <!-- 置急停标志为真 -->
+            state.isRunning = false;   <!-- 停止动画运行 -->
+
+            const azSign = Math.random() > 0.5 ? 1 : -1;   <!-- 随机决定方位角偏差方向（正或负） -->
+            const incSign = Math.random() > 0.5 ? 1 : -1;   <!-- 随机决定倾斜角偏差方向 -->
+            state.azimuth = clamp(state.azimuth + azSign * (8 + Math.random() * 8), -45, 45);   <!-- 方位角随机跳变 8~16 度并限幅 -->
+            state.inclination = clamp(state.inclination + incSign * (5 + Math.random() * 6), 0, 60);   <!-- 倾斜角随机跳变 5~11 度并限幅 -->
+            state.toolFace = clamp(state.toolFace + (Math.random() > 0.5 ? 1 : -1) * (15 + Math.random() * 25), 0, 360);   <!-- 工具面角随机跳变 15~40 度并限幅 -->
+
+            updateDeviation();   <!-- 重新计算偏差 -->
+
+            const btn = document.getElementById('btnEstop');   <!-- 获取急停按钮元素 -->
+            btn.textContent = '▮ 急停已激活 — 点击解锁';   <!-- 修改急停按钮文字 -->
+            btn.style.background = '#3a1816';   <!-- 急停按钮背景改为深红 -->
+            btn.style.borderColor = '#6a2a24';   <!-- 急停按钮边框改为亮红 -->
+
+            document.getElementById('btnStart').textContent = '▶ 开始';   <!-- 开始按钮文字恢复为“开始” -->
+            document.getElementById('btnStart').classList.remove('active');   <!-- 移除开始按钮的激活高亮 -->
+
+            if (animFrameId) cancelAnimationFrame(animFrameId);   <!-- 若存在动画帧请求则取消它 -->
+            animFrameId = null;   <!-- 清空动画帧 id -->
+
+            updateAllDisplays();   <!-- 刷新所有显示 -->
+            updateSVG();   <!-- 刷新剖面图 -->
+            drawAnimation();   <!-- 重绘底部动画 -->
+        }   <!-- triggerDeviationEvent 结束 -->
+
+        function emergencyStop() {   <!-- 急停按钮的点击处理 -->
+            if (state.autoEstopActive) {   <!-- 如果当前是“自动急停”，点击用于解锁 -->
+                state.estop = false;   <!-- 解除急停标志 -->
+                state.autoEstopActive = false;   <!-- 退出自动急停状态 -->
+                const btn = document.getElementById('btnEstop');   <!-- 获取急停按钮 -->
+                btn.textContent = '▮ 紧 急 停 钻';   <!-- 恢复急停按钮默认文字 -->
+                btn.style.background = '#2a1f1e';   <!-- 恢复默认背景 -->
+                btn.style.borderColor = '#4a302e';   <!-- 恢复默认边框 -->
+                state.isRunning = true;   <!-- 恢复动画运行 -->
+                document.getElementById('btnStart').textContent = '⏸ 暂停';   <!-- 开始按钮显示“暂停” -->
+                document.getElementById('btnStart').classList.add('active');   <!-- 开始按钮高亮 -->
+                lastTime = 0;   <!-- 重置时间戳，避免 dt 跳变 -->
+                animFrameId = requestAnimationFrame(animLoop);   <!-- 重新启动动画循环 -->
+                return;   <!-- 提前返回，不执行下方手动急停逻辑 -->
+            }   <!-- if 分支结束 -->
+
+            state.estop = !state.estop;   <!-- 手动急停：切换急停状态 -->
+            const btn = document.getElementById('btnEstop');   <!-- 获取急停按钮 -->
+            if (state.estop) {   <!-- 若刚进入急停状态 -->
+                btn.textContent = '▮ 急停已激活 — 点击解除';   <!-- 按钮文字提示可解除 -->
+                btn.style.background = '#3a1816';   <!-- 背景变深红 -->
+                btn.style.borderColor = '#6a2a24';   <!-- 边框变亮红 -->
+                state.isRunning = false;   <!-- 停止动画 -->
+                document.getElementById('btnStart').textContent = '▶ 开始';   <!-- 开始按钮恢复“开始” -->
+                document.getElementById('btnStart').classList.remove('active');   <!-- 移除高亮 -->
+            } else {   <!-- 若刚解除急停 -->
+                btn.textContent = '▮ 紧 急 停 钻';   <!-- 恢复默认文字 -->
+                btn.style.background = '#2a1f1e';   <!-- 恢复默认背景 -->
+                btn.style.borderColor = '#4a302e';   <!-- 恢复默认边框 -->
+            }   <!-- if/else 结束 -->
+        }   <!-- emergencyStop 结束 -->
+
+        function resetToTarget() {   <!-- 复位到设计轨迹目标值 -->
+            state.toolFace = state.targetToolFace;   <!-- 工具面角复位为目标值 -->
+            state.azimuth = state.targetAzimuth;   <!-- 方位角复位为目标值 -->
+            state.inclination = state.targetInclination;   <!-- 倾斜角复位为目标值 -->
+            state.deviation = 0;   <!-- 偏差清零 -->
+            actualPath = designPath.map(p => ({ ...p }));   <!-- 实际轨迹重置为设计轨迹 -->
+            updateAllDisplays();   <!-- 刷新显示 -->
+            updateSVG();   <!-- 刷新剖面图 -->
+        }   <!-- resetToTarget 结束 -->
+
+        /* 注释块：DEVIATION 偏差计算 */
+        function updateDeviation() {   <!-- 计算当前轨迹偏差 -->
+            const dAz = state.azimuth - state.targetAzimuth;   <!-- 方位角与目标的差值 -->
+            const dInc = state.inclination - state.targetInclination;   <!-- 倾斜角与目标的差值 -->
+            const angDev = Math.sqrt(dAz * dAz + dInc * dInc);   <!-- 用勾股定理合成角度偏差量 -->
+            state.deviation = angDev * (state.travelLength || 10) * 0.01745;   <!-- 角度偏差换算成距离偏差（弧度系数0.01745） -->
+        }   <!-- updateDeviation 结束 -->
+
+        function autoCorrectStep(dt) {   <!-- 自动纠偏：每帧向目标值逼近一步 -->
+            if (!state.autoCorrect || state.estop) return;   <!-- 未开启自动纠偏或急停时直接返回 -->
+            const Kp = 0.5;   <!-- 比例控制增益系数 -->
+            const dAz = state.targetAzimuth - state.azimuth;   <!-- 方位角目标与当前误差 -->
+            const dInc = state.targetInclination - state.inclination;   <!-- 倾斜角误差 -->
+            if (Math.abs(dAz) > 0.05) {   <!-- 方位角误差大于死区才纠正 -->
+                state.azimuth = clamp(state.azimuth + clamp(Kp * dAz * dt, -2 * dt, 2 * dt), -45, 45);   <!-- 按比例逐步修正方位角并限幅 -->
+            }   <!-- 方位角纠偏结束 -->
+            if (Math.abs(dInc) > 0.05) {   <!-- 倾斜角误差大于死区才纠正 -->
+                state.inclination = clamp(state.inclination + clamp(Kp * dInc * dt, -2 * dt, 2 * dt), 0, 60);   <!-- 逐步修正倾斜角并限幅 -->
+            }   <!-- 倾斜角纠偏结束 -->
+            updateDeviation();   <!-- 更新偏差值 -->
+        }   <!-- autoCorrectStep 结束 -->
+
+        /* 注释块：DISPLAY UPDATE 显示刷新 */
+        function updateAllDisplays() {   <!-- 把所有状态同步到页面上的数字 -->
+            document.getElementById('valToolFace').textContent = state.toolFace.toFixed(1);   <!-- 更新工具面角显示（1位小数） -->
+            document.getElementById('valAzimuth').textContent = state.azimuth.toFixed(1);   <!-- 更新方位角显示 -->
+            document.getElementById('valInclination').textContent = state.inclination.toFixed(1);   <!-- 更新倾斜角显示 -->
+            document.getElementById('valDepth').textContent = state.depth.toFixed(1);   <!-- 更新深度显示 -->
+            document.getElementById('valTravel').textContent = state.travelLength.toFixed(1);   <!-- 更新行程长度显示 -->
+            document.getElementById('valProgress').textContent = Math.round(state.progress);   <!-- 更新进度显示（四舍五入取整） -->
+            document.getElementById('valDeviation').textContent = state.deviation.toFixed(3);   <!-- 更新偏差显示（3位小数） -->
+
+            document.getElementById('dispToolFace').textContent = state.toolFace.toFixed(1) + '°';   <!-- 更新工具面角读数（带°） -->
+            document.getElementById('dispAzimuth').textContent = state.azimuth.toFixed(1) + '°';   <!-- 更新方位角读数 -->
+            document.getElementById('dispInclination').textContent = state.inclination.toFixed(1) + '°';   <!-- 更新倾斜角读数 -->
+
+            document.getElementById('ctrlToolFace').textContent = state.toolFace.toFixed(1);   <!-- 更新工具面角步进显示屏 -->
+            document.getElementById('ctrlAzimuth').textContent = state.azimuth.toFixed(1);   <!-- 更新方位角步进显示屏 -->
+            document.getElementById('ctrlInclination').textContent = state.inclination.toFixed(1);   <!-- 更新倾斜角步进显示屏 -->
+
+            const devBar = document.getElementById('devBar');   <!-- 获取偏差条元素 -->
+            const devStatus = document.getElementById('devStatus');   <!-- 获取偏差状态文字元素 -->
+            const alarmEl = document.getElementById('alarmStatus');   <!-- 获取告警状态元素 -->
+            const devPanel = document.getElementById('deviationPanel');   <!-- 获取偏差面板元素 -->
+            const maxDev = Math.max((state.travelLength || 100) * 0.01, 0.01);   <!-- 计算允许的最大偏差阈值 -->
+            const devPct = Math.min((state.deviation / maxDev) * 100, 100);   <!-- 偏差占阈值的百分比，上限100 -->
+
+            devBar.classList.remove('safe', 'warn', 'alarm');   <!-- 先清除偏差条上所有状态类 -->
+            devStatus.classList.remove('safe', 'warn', 'alarm');   <!-- 清除状态文字上的状态类 -->
+            devPanel.classList.remove('alert-border');   <!-- 清除面板的闪烁类 -->
+
+            if (state.deviation < maxDev * 0.5) {   <!-- 偏差小于阈值一半：安全态 -->
+                devBar.classList.add('safe');   <!-- 偏差条加安全类（绿色） -->
+                devStatus.classList.add('safe');   <!-- 状态文字加安全类 -->
+                devStatus.innerHTML = '◉ 偏差正常 — 在允许范围内';   <!-- 显示“正常”提示 -->
+                alarmEl.innerHTML = 'NORMAL';   <!-- 告警状态显示 NORMAL -->
+                alarmEl.style.color = 'var(--sig-green)';   <!-- 告警文字绿色 -->
+            } else if (state.deviation < maxDev) {   <!-- 偏差小于阈值：警告态 -->
+                devBar.classList.add('warn');   <!-- 偏差条加警告类（橙色） -->
+                devStatus.classList.add('warn');   <!-- 状态文字加警告类 -->
+                devStatus.innerHTML = '◉ 偏差警告 — 接近阈值';   <!-- 显示“警告”提示 -->
+                alarmEl.innerHTML = 'WARNING';   <!-- 告警状态显示 WARNING -->
+                alarmEl.style.color = 'var(--sig-orange)';   <!-- 告警文字橙色 -->
+            } else {   <!-- 偏差超过阈值：报警态 -->
+                devBar.classList.add('alarm');   <!-- 偏差条加报警类（红色） -->
+                devStatus.classList.add('alarm');   <!-- 状态文字加报警类 -->
+                devStatus.innerHTML = '◉ 偏差超标！请立即纠偏';   <!-- 显示“超标”提示 -->
+                alarmEl.innerHTML = 'ALARM';   <!-- 告警状态显示 ALARM -->
+                alarmEl.style.color = 'var(--sig-red)';   <!-- 告警文字红色 -->
+                devPanel.classList.add('alert-border');   <!-- 偏差面板加闪烁边框类 -->
+            }   <!-- if/else 结束 -->
+        }   <!-- updateAllDisplays 结束 -->
+
+        /* 注释块：SVG 可视化绘制 */
+        function updateSVG() {   <!-- 重新生成中间剖面图 SVG -->
+            const svg = document.getElementById('svgVis');   <!-- 获取 SVG 元素 -->
+            const W = 700,   <!-- 定义 SVG 视口宽度 700 -->
+                H = 400;   <!-- 定义 SVG 视口高度 400 -->
+
+            actualPath = designPath.map((p, i) => {   <!-- 根据参数偏移，重新计算实际轨迹各点 -->
+                const t = i / (designPath.length - 1);   <!-- 当前点在整条轨迹中的归一化位置 0~1 -->
+                return {   <!-- 返回偏移后的新坐标点 -->
+                    x: p.x + state.azimuth * t * 1.2,   <!-- x 方向按方位角偏移，越靠后偏移越大 -->
+                    y: p.y + (state.inclination - state.targetInclination) * t * 0.8   <!-- y 方向按倾斜角偏差偏移 -->
+                };   <!-- 新点对象结束 -->
+            });   <!-- map 结束 -->
+
+            const progressIdx = state.progress / 100;   <!-- 进度转成 0~1 比例 -->
+            const pathIdx = progressIdx * (designPath.length - 1);   <!-- 换算成轨迹点索引位置 -->
+            const iFloor = Math.min(Math.floor(pathIdx), designPath.length - 2);   <!-- 取整得到所在段起点索引 -->
+            const iFrac = pathIdx - iFloor;   <!-- 取小数部分作为段内插值比例 -->
+            const a0 = actualPath[iFloor];   <!-- 段起点坐标 -->
+            const a1 = actualPath[Math.min(iFloor + 1, actualPath.length - 1)];   <!-- 段终点坐标 -->
+            const headX = a0.x + (a1.x - a0.x) * iFrac;   <!-- 钻头位置 x 插值 -->
+            const headY = a0.y + (a1.y - a0.y) * iFrac;   <!-- 钻头位置 y 插值 -->
+            const headAngle = Math.atan2(a1.y - a0.y, a1.x - a0.x) * 180 / Math.PI + state.inclination * 0.3;   <!-- 钻头朝向角（弧度转角度+倾斜影响） -->
+
+            const isAlarm = state.deviation > Math.max((state.travelLength || 100) * 0.01, 0.01);   <!-- 判断是否偏差报警 -->
+            const actualColor = isAlarm ? '#c43d36' : '#e8b82e';   <!-- 报警红色，否则黄色 -->
+
+            let h = '';   <!-- 初始化 SVG 内容字符串 -->
+
+            for (let x = 0; x <= W; x += 50) h +=   <!-- 每 50 像素画一条竖网格线，拼接到字符串 -->
+                `<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="rgba(255,255,255,0.025)" stroke-width="1"/>`;   <!-- 生成竖网格线 SVG -->
+            for (let y = 0; y <= H; y += 50) h +=   <!-- 每 50 像素画一条横网格线 -->
+                `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="rgba(255,255,255,0.025)" stroke-width="1"/>`;   <!-- 生成横网格线 SVG -->
+
+            h += `<rect x="0" y="70" width="${W}" height="90" fill="#292a26"/>`;   <!-- 画表土层矩形色块 -->
+            h += `<rect x="0" y="160" width="${W}" height="100" fill="#2a2924"/>`;   <!-- 画粘土层矩形色块 -->
+            h += `<rect x="0" y="260" width="${W}" height="140" fill="#252524"/>`;   <!-- 画岩层矩形色块 -->
+            h += `<text x="8" y="120" fill="#5f5b56" font-size="10" font-family="var(--font-sans)">表土层</text>`;   <!-- 标注“表土层”文字 -->
+            h += `<text x="8" y="215" fill="#5f5b56" font-size="10" font-family="var(--font-sans)">粘土层</text>`;   <!-- 标注“粘土层”文字 -->
+            h += `<text x="8" y="335" fill="#5f5b56" font-size="10" font-family="var(--font-sans)">岩 层</text>`;   <!-- 标注“岩层”文字 -->
+
+            h += `<line x1="0" y1="70" x2="${W}" y2="55" stroke="#6b7b8c" stroke-width="2"/>`;   <!-- 画地面倾斜线 -->
+            h += `<text x="660" y="50" fill="#6b7b8c" font-size="10">▲ 地面</text>`;   <!-- 标注“地面”文字 -->
+
+            h += `<path d="${buildPathD(designPath)}" fill="none" stroke="#4e7d96" stroke-width="1.8" stroke-dasharray="8 5" opacity="0.7" stroke-linecap="round" stroke-linejoin="round"/>`;   <!-- 画蓝色虚线设计轨迹 -->
+
+            h +=   <!-- 拼接下一行 SVG 片段 -->
+                `<path d="${buildPathD(actualPath)}" fill="none" stroke="${actualColor}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`;   <!-- 画黄色/红色实际轨迹 -->
+
+            h += `<circle cx="${designPath[0].x}" cy="${designPath[0].y}" r="5" fill="#4e8c41"/>`;   <!-- 画入土点绿色圆点 -->
+            h += `<text x="${designPath[0].x-10}" y="${designPath[0].y-10}" fill="#4e8c41" font-size="10" text-anchor="end">入土点</text>`;   <!-- 标注“入土点” -->
+            const lastP = designPath[designPath.length - 1];   <!-- 取出设计轨迹最后一个点（出土点） -->
+            h += `<circle cx="${lastP.x}" cy="${lastP.y}" r="5" fill="#4e8c41"/>`;   <!-- 画出土点绿色圆点 -->
+            h += `<text x="${lastP.x+12}" y="${lastP.y-6}" fill="#4e8c41" font-size="10">出土点</text>`;   <!-- 标注“出土点” -->
+
+            if (state.progress > 0.5 && state.progress < 99.5) {   <!-- 钻头在轨迹中间时（非起点终点）才绘制钻头 -->
+                const rad = headAngle * Math.PI / 180;   <!-- 钻头朝向角转弧度，用于三角计算 -->
+                h +=   <!-- 拼接钻头椭圆 -->
+                    `<ellipse cx="${headX}" cy="${headY}" rx="11" ry="6" fill="#e8b82e" stroke="#1e2022" stroke-width="1.2" transform="rotate(${headAngle},${headX},${headY})"/>`;   <!-- 画旋转的黄色钻头椭圆 -->
+                h +=   <!-- 拼接钻头前进方向虚线 -->
+                    `<line x1="${headX}" y1="${headY}" x2="${headX+Math.cos(rad)*26}" y2="${headY+Math.sin(rad)*26}" stroke="#d9782b" stroke-width="2" stroke-dasharray="4 3"/>`;   <!-- 画钻头朝向的橙色虚线 -->
+                const tfRad = (headAngle + state.toolFace) * Math.PI / 180;   <!-- 工具面角方向转弧度 -->
+                h +=   <!-- 拼接工具面指示线 -->
+                    `<line x1="${headX-Math.cos(tfRad)*9}" y1="${headY-Math.sin(tfRad)*9}" x2="${headX+Math.cos(tfRad)*9}" y2="${headY+Math.sin(tfRad)*9}" stroke="#6b7b8c" stroke-width="1.5"/>`;   <!-- 画工具面角钢灰色指示线 -->
+            }   <!-- 钻头绘制分支结束 -->
+
+            h +=   <!-- 拼接深度刻度 0m -->
+                `<line x1="680" y1="70" x2="700" y2="70" stroke="rgba(255,255,255,0.08)" stroke-width="1"/><text x="684" y="73" fill="#5f5b56" font-size="9">0 m</text>`;   <!-- 画 0 米刻度线和文字 -->
+            h +=   <!-- 拼接深度刻度 15m -->
+                `<line x1="680" y1="200" x2="700" y2="200" stroke="rgba(255,255,255,0.08)" stroke-width="1"/><text x="684" y="203" fill="#5f5b56" font-size="9">15 m</text>`;   <!-- 画 15 米刻度线和文字 -->
+            h +=   <!-- 拼接深度刻度 30m -->
+                `<line x1="680" y1="335" x2="700" y2="335" stroke="rgba(255,255,255,0.08)" stroke-width="1"/><text x="684" y="338" fill="#5f5b56" font-size="9">30 m</text>`;   <!-- 画 30 米刻度线和文字 -->
+
+            h +=   <!-- 拼接图例：设计轨迹 -->
+                `<line x1="16" y1="380" x2="46" y2="380" stroke="#4e7d96" stroke-width="1.5" stroke-dasharray="6 4"/><text x="52" y="384" fill="#5f5b56" font-size="10">设计轨迹</text>`;   <!-- 画设计轨迹图例 -->
+            h +=   <!-- 拼接图例：实际轨迹 -->
+                `<line x1="130" y1="380" x2="160" y2="380" stroke="${actualColor}" stroke-width="2"/><text x="166" y="384" fill="#5f5b56" font-size="10">实际轨迹</text>`;   <!-- 画实际轨迹图例 -->
+
+            if (state.deviation > 0.05) {   <!-- 偏差明显时才画偏差标注线 -->
+                const mp = designPath[4],   <!-- 取设计轨迹第5个点 -->
+                    ma = actualPath[4];   <!-- 取实际轨迹第5个点 -->
+                h +=   <!-- 拼接偏差连线 -->
+                    `<line x1="${mp.x}" y1="${mp.y}" x2="${ma.x}" y2="${ma.y}" stroke="#c43d36" stroke-width="1" stroke-dasharray="2 3"/>`;   <!-- 画设计/实际两点间红色偏差虚线 -->
+                h +=   <!-- 拼接偏差数值文字 -->
+                    `<text x="${(mp.x+ma.x)/2+5}" y="${(mp.y+ma.y)/2-4}" fill="#c43d36" font-size="10" font-family="var(--font-mono)">Δ${state.deviation.toFixed(2)}m</text>`;   <!-- 在两点中点旁标注偏差值 -->
+            }   <!-- 偏差标注结束 -->
+
+            svg.innerHTML = h;   <!-- 把拼接好的 SVG 字符串一次性写入页面 -->
+        }   <!-- updateSVG 结束 -->
+
+        /* 注释块：CANVAS 动画绘制 */
+        const canvas = document.getElementById('animCanvas');   <!-- 获取底部动画画布元素 -->
+        const ctx = canvas.getContext('2d');   <!-- 获取 2D 绘图上下文，用于绘制 -->
+
+        function resizeCanvas() {   <!-- 根据容器大小调整画布分辨率，避免模糊 -->
+            const wrap = canvas.parentElement;   <!-- 获取画布父容器 -->
+            const dpr = window.devicePixelRatio || 1;   <!-- 读取设备像素比，高分屏为 2 等 -->
+            canvas.width = wrap.clientWidth * dpr;   <!-- 画布实际像素宽度乘以 dpr -->
+            canvas.height = wrap.clientHeight * dpr;   <!-- 画布实际像素高度乘以 dpr -->
+            ctx.setTransform(1, 0, 0, 1, 0, 0);   <!-- 重置变换矩阵 -->
+            ctx.scale(dpr, dpr);   <!-- 按 dpr 缩放，让后续绘制坐标以 CSS 像素为单位 -->
+            canvas.style.width = wrap.clientWidth + 'px';   <!-- 设置画布 CSS 显示宽度 -->
+            canvas.style.height = wrap.clientHeight + 'px';   <!-- 设置画布 CSS 显示高度 -->
+        }   <!-- resizeCanvas 结束 -->
+        resizeCanvas();   <!-- 初次调用，按当前容器尺寸初始化画布 -->
+        window.addEventListener('resize', () => { resizeCanvas();   <!-- 监听窗口缩放，重新调整画布尺寸 -->
+            drawAnimation(); });   <!-- 尺寸调整后立即重绘动画 -->
+
+        function drawAnimation() {   <!-- 绘制底部施工过程动画的主函数 -->
+            const W = canvas.clientWidth,   <!-- 画布 CSS 宽度 -->
+                H = canvas.clientHeight;   <!-- 画布 CSS 高度 -->
+            ctx.clearRect(0, 0, W, H);   <!-- 清空画布，准备重绘本帧 -->
+
+            const groundY = H * 0.22;   <!-- 地面线高度：画布高度的 22% 处 -->
+
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);   <!-- 创建天空区域的纵向渐变 -->
+            skyGrad.addColorStop(0, '#1c1d1f');   <!-- 渐变色：顶部深灰 -->
+            skyGrad.addColorStop(1, '#212325');   <!-- 渐变色：底部稍亮 -->
+            ctx.fillStyle = skyGrad;   <!-- 用渐变作为填充色 -->
+            ctx.fillRect(0, 0, W, groundY);   <!-- 填充天空矩形区域 -->
+
+            ctx.strokeStyle = '#6b7b8c';   <!-- 设置地面线颜色为钢灰 -->
+            ctx.lineWidth = 1.8;   <!-- 线宽 1.8 像素 -->
+            ctx.beginPath();   <!-- 开始一条新路径 -->
+            ctx.moveTo(0, groundY);   <!-- 地面线起点在左侧 -->
+            ctx.lineTo(W, groundY);   <!-- 地面线终点在右侧 -->
+            ctx.stroke();   <!-- 描边绘制地面线 -->
+            ctx.setLineDash([2, 6]);   <!-- 设置虚线样式：2 实 6 空 -->
+            ctx.strokeStyle = '#4a4d50';   <!-- 换用更暗的颜色画地面阴影线 -->
+            ctx.beginPath();   <!-- 开始新路径 -->
+            ctx.moveTo(0, groundY - 2);   <!-- 阴影线起点（地面上方2像素） -->
+            ctx.lineTo(W, groundY - 2);   <!-- 阴影线终点 -->
+            ctx.stroke();   <!-- 描边绘制阴影虚线 -->
+            ctx.setLineDash([]);   <!-- 恢复实线样式 -->
+
+            const layers = [   <!-- 定义地下各地层数组 -->
+                { y: groundY, h: H * 0.2, c: '#292a26' },   <!-- 表土层：从地面开始，高20%，深灰色 -->
+                { y: groundY + H * 0.2, h: H * 0.3, c: '#2a2924' },   <!-- 粘土层：高30% -->
+                { y: groundY + H * 0.5, h: H * 0.3, c: '#252524' },   <!-- 岩层：高30% -->
+            ];   <!-- 地层数组结束 -->
+            layers.forEach(l => { ctx.fillStyle = l.c;   <!-- 遍历地层，设置每层填充色 -->
+                ctx.fillRect(0, l.y, W, l.h); });   <!-- 填充每层矩形 -->
+
+            layers.forEach(l => {   <!-- 再次遍历地层，画波浪纹理线 -->
+                ctx.strokeStyle = 'rgba(255,255,255,0.03)';   <!-- 纹理线用极淡白色 -->
+                ctx.lineWidth = 0.8;   <!-- 线宽 0.8 像素 -->
+                ctx.beginPath();   <!-- 开始新路径 -->
+                ctx.moveTo(0, l.y);   <!-- 纹理线从层顶左端开始 -->
+                for (let x = 0; x < W; x += 24) ctx.lineTo(x, l.y + Math.sin(x * 0.01) * 3);   <!-- 每隔24像素画一个正弦起伏点，形成波浪线 -->
+                ctx.stroke();   <!-- 描边绘制波浪纹理 -->
+            });   <!-- 纹理绘制结束 -->
+
+            ctx.fillStyle = '#5f5b56';   <!-- 设置地层标签文字颜色 -->
+            ctx.font = '10px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';   <!-- 设置标签字体 -->
+            ctx.fillText('表土层', 8, groundY + 18);   <!-- 在表土层位置写“表土层” -->
+            ctx.fillText('粘土层', 8, groundY + H * 0.2 + 18);   <!-- 在粘土层位置写“粘土层” -->
+            ctx.fillText('岩  层', 8, groundY + H * 0.5 + 40);   <!-- 在岩层位置写“岩层” -->
+
+            const rigX = W * 0.08,   <!-- 钻机 x 位置：画布 8% 处 -->
+                rigBaseY = groundY - 6;   <!-- 钻机底座 y 位置：地面线上方 6 像素 -->
+            ctx.fillStyle = '#232528';   <!-- 钻机机身填充深灰 -->
+            ctx.strokeStyle = '#6b7b8c';   <!-- 钻机描边钢灰 -->
+            ctx.lineWidth = 1.5;   <!-- 线宽 1.5 像素 -->
+            ctx.beginPath();   <!-- 开始钻机矩形路径 -->
+            const rrx = rigX - 22,   <!-- 钻机矩形左上角 x -->
+                rry = rigBaseY - 34,   <!-- 钻机矩形左上角 y -->
+                rrw = 44,   <!-- 钻机矩形宽度 44 -->
+                rrh = 36,   <!-- 钻机矩形高度 36 -->
+                rrr = 3;   <!-- 钻机圆角半径 3 -->
+            ctx.moveTo(rrx + rrr, rry);   <!-- 路径起点：左上角圆角起始 -->
+            ctx.lineTo(rrx + rrw - rrr, rry);   <!-- 上边直线 -->
+            ctx.arcTo(rrx + rrw, rry, rrx + rrw, rry + rrr, rrr);   <!-- 右上角圆角 -->
+            ctx.lineTo(rrx + rrw, rry + rrh - rrr);   <!-- 右边直线 -->
+            ctx.arcTo(rrx + rrw, rry + rrh, rrx + rrw - rrr, rry + rrh, rrr);   <!-- 右下角圆角 -->
+            ctx.lineTo(rrx + rrr, rry + rrh);   <!-- 底边直线 -->
+            ctx.arcTo(rrx, rry + rrh, rrx, rry + rrh - rrr, rrr);   <!-- 左下角圆角 -->
+            ctx.lineTo(rrx, rry + rrr);   <!-- 左边直线 -->
+            ctx.arcTo(rrx, rry, rrx + rrr, rry, rrr);   <!-- 左上角圆角 -->
+            ctx.closePath();   <!-- 闭合路径 -->
+            ctx.fill();   <!-- 填充钻机机身 -->
+            ctx.stroke();   <!-- 描边钻机轮廓 -->
+
+            ctx.fillStyle = '#6b7b8c';   <!-- 钻机标签文字颜色 -->
+            ctx.font = 'bold 10px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';   <!-- 标签字体加粗 -->
+            ctx.fillText('钻机', rigX - 18, rigBaseY - 40);   <!-- 写“钻机”标签 -->
+
+            const mastAngle = -state.inclination * Math.PI / 180;   <!-- 钻杆角度：由倾斜角换算成弧度并取负 -->
+            const mastLen = 40;   <!-- 钻杆长度 40 像素 -->
+            ctx.strokeStyle = '#97938d';   <!-- 钻杆颜色灰白 -->
+            ctx.lineWidth = 2.5;   <!-- 线宽 2.5 像素 -->
+            ctx.beginPath();   <!-- 开始钻杆路径 -->
+            ctx.moveTo(rigX, rigBaseY - 8);   <!-- 钻杆起点（钻机上端） -->
+            ctx.lineTo(rigX + Math.cos(mastAngle) * mastLen, rigBaseY - 34 + Math.sin(mastAngle) * mastLen);   <!-- 钻杆终点按角度延伸 -->
+            ctx.stroke();   <!-- 描边绘制钻杆 -->
+
+            ctx.fillStyle = '#4e8c41';   <!-- 入土点绿色 -->
+            ctx.beginPath();   <!-- 开始入土点圆 -->
+            ctx.arc(rigX, groundY, 4, 0, Math.PI * 2);   <!-- 画半径4的入土点圆 -->
+            ctx.fill();   <!-- 填充圆 -->
+            ctx.fillText('入土点', rigX - 16, groundY - 8);   <!-- 标注“入土点” -->
+            const exitX = W * 0.88;   <!-- 出土点 x：画布 88% 处 -->
+            ctx.beginPath();   <!-- 开始出土点圆 -->
+            ctx.arc(exitX, groundY + H * 0.02, 4, 0, Math.PI * 2);   <!-- 画出土点圆 -->
+            ctx.fill();   <!-- 填充圆 -->
+            ctx.fillText('出土点', exitX + 10, groundY - 2);   <!-- 标注“出土点” -->
+
+            const psX = rigX,   <!-- 轨迹曲线起点 x（钻机处） -->
+                psY = groundY + 6;   <!-- 轨迹曲线起点 y -->
+            const peX = exitX,   <!-- 轨迹曲线终点 x（出土点） -->
+                peY = groundY + H * 0.02;   <!-- 轨迹曲线终点 y -->
+            const cpDepth = groundY + H * 0.46;   <!-- 轨迹最深处的深度 -->
+            const cp1x = psX + (peX - psX) * 0.35,   <!-- 第一个贝塞尔控制点 x（全程35%处） -->
+                cp1y = cpDepth;   <!-- 第一个控制点 y（最深处） -->
+            const cp2x = psX + (peX - psX) * 0.65,   <!-- 第二个控制点 x（全程65%处） -->
+                cp2y = cpDepth;   <!-- 第二个控制点 y（最深处） -->
+
+            ctx.strokeStyle = 'rgba(78,125,150,0.55)';   <!-- 设计轨迹虚线颜色（半透明蓝） -->
+            ctx.lineWidth = 1.5;   <!-- 线宽 1.5 像素 -->
+            ctx.setLineDash([8, 6]);   <!-- 虚线样式 8 实 6 空 -->
+            ctx.beginPath();   <!-- 开始设计轨迹路径 -->
+            ctx.moveTo(psX, psY);   <!-- 设计轨迹起点 -->
+            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, peX, peY);   <!-- 用贝塞尔曲线画设计轨迹 -->
+            ctx.stroke();   <!-- 描边设计轨迹 -->
+            ctx.setLineDash([]);   <!-- 恢复实线 -->
+
+            const devOff = state.azimuth * 0.5;   <!-- 实际轨迹的水平偏移量（由方位角决定） -->
+            const devV = (state.inclination - state.targetInclination) * 1.0;   <!-- 实际轨迹的垂直偏移量（由倾斜角偏差决定） -->
+            const maxDevAnim = Math.max((state.travelLength || 100) * 0.01, 0.01);   <!-- 动画里的最大偏差阈值 -->
+            const isAlarm = state.deviation > maxDevAnim;   <!-- 判断动画中是否报警 -->
+            const actualColor = isAlarm ? '#c43d36' : '#e8b82e';   <!-- 报警红色否则黄色 -->
+
+            ctx.strokeStyle = actualColor;   <!-- 实际轨迹颜色 -->
+            ctx.lineWidth = 2.2;   <!-- 实际轨迹线宽 2.2 像素 -->
+            ctx.beginPath();   <!-- 开始实际轨迹路径 -->
+            ctx.moveTo(psX, psY);   <!-- 实际轨迹起点 -->
+            ctx.bezierCurveTo(cp1x + devOff * 0.3, cp1y + devV * 0.3, cp2x + devOff * 0.7, cp2y + devV * 0.7, peX + devOff,   <!-- 实际轨迹控制点和终点加偏移 -->
+                peY + devV);   <!-- 实际轨迹终点 y 加偏移 -->
+            ctx.stroke();   <!-- 描边实际轨迹 -->
+
+            const t = state.progress / 100;   <!-- 进度转 0~1，用于贝塞尔插值 -->
+            const ax = psX + (cp1x - psX) * t + ((cp1x + (cp2x - cp1x) * t) - (psX + (cp1x - psX) * t)) * t;   <!-- 贝塞尔二次递推求钻头 x -->
+            const bx = cp1x + (cp2x - cp1x) * t + ((cp2x + (peX - cp2x) * t) - (cp1x + (cp2x - cp1x) * t)) * t;   <!-- 贝塞尔第二段 x 递推 -->
+            let hx = ax + (bx - ax) * t + devOff * t;   <!-- 钻头最终 x（含偏移） -->
+            const ay = psY + (cp1y - psY) * t + ((cp1y + (cp2y - cp1y) * t) - (psY + (cp1y - psY) * t)) * t;   <!-- 贝塞尔二次递推求钻头 y -->
+            const by = cp1y + (cp2y - cp1y) * t + ((cp2y + (peY - cp2y) * t) - (cp1y + (cp2y - cp1y) * t)) * t;   <!-- 贝塞尔第二段 y 递推 -->
+            let hy = ay + (by - ay) * t + devV * t;   <!-- 钻头最终 y（含偏移） -->
+
+            if (state.progress > 0.5 && state.progress < 99.5) {   <!-- 钻头不在端点时才绘制钻头图形 -->
+                ctx.fillStyle = isAlarm ? 'rgba(196,61,54,0.12)' : 'rgba(232,184,46,0.10)';   <!-- 钻头周围光晕颜色（报警红/正常黄） -->
+                ctx.beginPath();   <!-- 开始光晕圆 -->
+                ctx.arc(hx, hy, 14, 0, Math.PI * 2);   <!-- 画半径14的光晕圆 -->
+                ctx.fill();   <!-- 填充光晕 -->
+
+                const dbx = 3 * (1 - t) * (1 - t) * (cp1x - psX) + 6 * (1 - t) * t * (cp2x - cp1x) + 3 * t * t * (peX - cp2x);   <!-- 贝塞尔曲线在 t 处的切向量 x 分量 -->
+                const dby = 3 * (1 - t) * (1 - t) * (cp1y - psY) + 6 * (1 - t) * t * (cp2y - cp1y) + 3 * t * t * (peY - cp2y);   <!-- 切向量 y 分量 -->
+                const angle = Math.atan2(dby, dbx);   <!-- 由切向量算出钻头朝向角 -->
+
+                ctx.save();   <!-- 保存当前绘图状态 -->
+                ctx.translate(hx, hy);   <!-- 平移坐标系到钻头位置 -->
+                ctx.rotate(angle);   <!-- 旋转坐标系到钻头朝向 -->
+                ctx.fillStyle = '#e8b82e';   <!-- 钻头主体黄色 -->
+                ctx.strokeStyle = '#1e2022';   <!-- 钻头描边深色 -->
+                ctx.lineWidth = 1.2;   <!-- 线宽 1.2 像素 -->
+                ctx.beginPath();   <!-- 开始钻头椭圆 -->
+                ctx.ellipse(0, 0, 12, 6, 0, 0, Math.PI * 2);   <!-- 画钻头椭圆（长12短6） -->
+                ctx.fill();   <!-- 填充钻头 -->
+                ctx.stroke();   <!-- 描边钻头 -->
+                ctx.strokeStyle = 'rgba(0,0,0,0.25)';   <!-- 钻头纹理线用半透明黑 -->
+                ctx.lineWidth = 0.7;   <!-- 纹理线宽 0.7 像素 -->
+                for (let i = -4; i <= 4; i += 2) { ctx.beginPath();   <!-- 循环画钻头身上的竖纹理线 -->
+                    ctx.moveTo(i, -4);   <!-- 纹理线起点 -->
+                    ctx.lineTo(i, 4);   <!-- 纹理线终点 -->
+                    ctx.stroke(); }   <!-- 描边一条纹理线 -->
+                ctx.strokeStyle = '#d9782b';   <!-- 钻头前向虚线橙色 -->
+                ctx.lineWidth = 1.5;   <!-- 线宽 1.5 像素 -->
+                ctx.setLineDash([3, 3]);   <!-- 虚线 3 实 3 空 -->
+                ctx.beginPath();   <!-- 开始前向虚线 -->
+                ctx.moveTo(9, 0);   <!-- 虚线起点 -->
+                ctx.lineTo(26, 0);   <!-- 虚线终点 -->
+                ctx.stroke();   <!-- 描边前向虚线 -->
+                ctx.setLineDash([]);   <!-- 恢复实线 -->
+                ctx.fillStyle = '#d9782b';   <!-- 箭头橙色 -->
+                ctx.beginPath();   <!-- 开始箭头三角 -->
+                ctx.moveTo(28, 0);   <!-- 箭头尖端 -->
+                ctx.lineTo(22, -4);   <!-- 箭头左翼 -->
+                ctx.lineTo(22, 4);   <!-- 箭头右翼 -->
+                ctx.closePath();   <!-- 闭合三角 -->
+                ctx.fill();   <!-- 填充箭头 -->
+                ctx.restore();   <!-- 恢复坐标系状态 -->
+            }   <!-- 钻头绘制结束 -->
+
+            if (state.phase === 'reaming') {   <!-- 扩孔阶段：画扩孔器 -->
+                const rt = (state.animTime * state.speed * 0.12) % 1;   <!-- 扩孔器位置随时间循环 0~1 -->
+                ctx.fillStyle = '#d9782b';   <!-- 扩孔器橙色 -->
+                ctx.strokeStyle = '#1e2022';   <!-- 描边深色 -->
+                ctx.lineWidth = 1;   <!-- 线宽 1 像素 -->
+                ctx.beginPath();   <!-- 开始扩孔器圆 -->
+                ctx.arc(psX + (peX - psX) * 0.55, cpDepth * 0.5 + groundY * 0.5, 12, 0, Math.PI * 2);   <!-- 画扩孔器圆（约在轨迹中段） -->
+                ctx.fill();   <!-- 填充扩孔器 -->
+                ctx.stroke();   <!-- 描边扩孔器 -->
+                ctx.fillStyle = '#e8e4de';   <!-- 扩孔器标签文字色 -->
+                ctx.font = 'bold 9px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';   <!-- 标签字体 -->
+                ctx.fillText('扩孔器', psX + (peX - psX) * 0.55 + 16, cpDepth * 0.5 + groundY * 0.5 + 3);   <!-- 写“扩孔器”标签 -->
+            }   <!-- 扩孔器绘制结束 -->
+            if (state.phase === 'pullback') {   <!-- 回拖阶段：画拖回的管道 -->
+                const pt = (state.animTime * state.speed * 0.10) % 1;   <!-- 管道回拖进度随时间循环 0~1 -->
+                ctx.strokeStyle = '#6b7b8c';   <!-- 管道颜色钢灰 -->
+                ctx.lineWidth = 5;   <!-- 管道线宽 5 像素 -->
+                ctx.beginPath();   <!-- 开始管道路径 -->
+                ctx.moveTo(peX, peY);   <!-- 管道从出土点开始 -->
+                ctx.bezierCurveTo(cp2x, cp2y, cp1x, cp1y, psX + (peX - psX) * (1 - pt), psY + (cpDepth - psY) * (1 - pt));   <!-- 用贝塞尔曲线画回拖中的管道 -->
+                ctx.stroke();   <!-- 描边管道 -->
+                ctx.fillStyle = '#97938d';   <!-- 管道标签文字色 -->
+                ctx.font = 'bold 9px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';   <!-- 标签字体 -->
+                ctx.fillText('管道', peX - 28, peY - 10);   <!-- 写“管道”标签 -->
+            }   <!-- 管道绘制结束 -->
+
+            const ly = H - 18;   <!-- 图例的 y 位置：画布底部上 18 像素 -->
+            ctx.strokeStyle = 'rgba(78,125,150,0.55)';   <!-- 设计轨迹图例颜色 -->
+            ctx.lineWidth = 1.2;   <!-- 线宽 1.2 像素 -->
+            ctx.setLineDash([6, 4]);   <!-- 虚线 6 实 4 空 -->
+            ctx.beginPath();   <!-- 开始图例线 -->
+            ctx.moveTo(12, ly);   <!-- 图例线起点 -->
+            ctx.lineTo(36, ly);   <!-- 图例线终点 -->
+            ctx.stroke();   <!-- 描边图例线 -->
+            ctx.setLineDash([]);   <!-- 恢复实线 -->
+            ctx.fillStyle = '#97938d';   <!-- 图例文字色 -->
+            ctx.font = '10px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';   <!-- 图例字体 -->
+            ctx.fillText('设计轨迹', 42, ly + 4);   <!-- 写“设计轨迹” -->
+            ctx.strokeStyle = actualColor;   <!-- 实际轨迹图例用当前实际轨迹颜色 -->
+            ctx.lineWidth = 1.8;   <!-- 线宽 1.8 像素 -->
+            ctx.setLineDash([]);   <!-- 实线 -->
+            ctx.beginPath();   <!-- 开始图例线 -->
+            ctx.moveTo(120, ly);   <!-- 实际轨迹图例线起点 -->
+            ctx.lineTo(144, ly);   <!-- 图例线终点 -->
+            ctx.stroke();   <!-- 描边图例线 -->
+            ctx.fillText('实际轨迹', 150, ly + 4);   <!-- 写“实际轨迹” -->
+            ctx.fillStyle = '#e8b82e';   <!-- 钻头图例黄色 -->
+            ctx.beginPath();   <!-- 开始钻头图例圆 -->
+            ctx.arc(254, ly, 5, 0, Math.PI * 2);   <!-- 画半径5的钻头图例圆 -->
+            ctx.fill();   <!-- 填充圆 -->
+            ctx.fillText('钻头', 264, ly + 4);   <!-- 写“钻头” -->
+        }   <!-- drawAnimation 结束 -->
+
+        /* 注释块：ANIMATION LOOP 动画循环 */
+        let lastTime = 0,   <!-- 上一帧时间戳，用于计算时间差 -->
+            animFrameId = null;   <!-- 当前动画帧请求 id，用于取消 -->
+
+        function animLoop(ts) {   <!-- 动画主循环，ts 为浏览器传入的时间戳 -->
+            if (!state.isRunning) { animFrameId = null; return; }   <!-- 未运行时清空帧id并退出循环 -->
+            if (!lastTime) lastTime = ts;   <!-- 首帧先初始化时间戳，避免 dt 异常 -->
+            let dt = (ts - lastTime) / 1000;   <!-- 计算本帧与上帧的时间差（秒） -->
+            if (dt > 0.1) dt = 0.1;   <!-- 限制 dt 上限 0.1 秒，防止切后台后跳变 -->
+            lastTime = ts;   <!-- 更新上一帧时间戳 -->
+            dt *= state.speed;   <!-- 时间差乘以速度倍率，实现加速/减速 -->
+
+            if (!state.estop) {   <!-- 非急停状态下才推进动画 -->
+                state.animTime += dt;   <!-- 累计动画时间 -->
+                <!-- 注释：导向钻进分前后两段，各需8秒@1.75×：前半段0→42（触发急停），后半段42→100（完成） -->
+                const spd = state.phase === 'pilot'   <!-- 根据阶段确定进度推进速度 -->
+                    ? (state.progress < 42 ? 3 : 58 / 14)   <!-- 导向阶段：前42%用速度3，之后用约4.14 -->
+                    : state.phase === 'reaming' ? 2.5 : 2;   <!-- 扩孔阶段速度2.5，回拖阶段速度2 -->
+                state.progress = Math.min(state.progress + spd * dt, 100);   <!-- 进度累加并封顶100 -->
+
+                if (state.phase === 'pilot' && state.progress >= 42 && !state.deviationEventTriggered) {   <!-- 导向阶段进度到42%且事件未触发时 -->
+                    triggerDeviationEvent();   <!-- 触发偏差超标事件 -->
+                }   <!-- 事件触发判断结束 -->
+
+                if (state.progress >= 100) {   <!-- 本阶段进度到100%时切换阶段 -->
+                    if (state.phase === 'pilot') { state.phase = 'reaming';   <!-- 导向完成→进入扩孔 -->
+                        state.progress = 0;   <!-- 进度清零 -->
+                        updatePhaseUI(); } else if (state.phase === 'reaming') { state.phase = 'pullback';   <!-- 扩孔完成→进入回拖 -->
+                        state.progress = 0;   <!-- 进度清零 -->
+                        updatePhaseUI(); } else {   <!-- 回拖完成→全部结束 -->
+                        state.progress = 100;   <!-- 进度保持100 -->
+                        state.isRunning = false;   <!-- 停止动画 -->
+                        document.getElementById('btnStart').textContent = '✓ 完成';   <!-- 开始按钮显示“完成” -->
+                        document.getElementById('btnStart').classList.remove('active');   <!-- 移除高亮 -->
+                    }   <!-- 阶段切换结束 -->
+                }   <!-- 进度完成判断结束 -->
+                state.travelLength = state.progress * 1.5;   <!-- 行程长度=进度×1.5 米 -->
+                state.depth = Math.sin(state.progress / 100 * Math.PI) * 20;   <!-- 深度按正弦曲线变化，最大20米 -->
+                autoCorrectStep(dt);   <!-- 执行一帧自动纠偏 -->
+            }   <!-- 非急停推进结束 -->
+
+            updateAllDisplays();   <!-- 刷新所有数字显示 -->
+            updateSVG();   <!-- 刷新剖面图 -->
+            drawAnimation();   <!-- 重绘底部动画 -->
+            animFrameId = requestAnimationFrame(animLoop);   <!-- 请求下一帧，形成持续循环 -->
+        }   <!-- animLoop 结束 -->
+
+        function toggleAnimation() {   <!-- 开始/暂停动画 -->
+            if (state.estop) return;   <!-- 急停状态下不允许开始动画 -->
+            if (state.progress >= 100 && state.phase === 'pullback') resetAnimation();   <!-- 回拖完成后点开始则先重置 -->
+            state.isRunning = !state.isRunning;   <!-- 切换运行状态 -->
+            const btn = document.getElementById('btnStart');   <!-- 获取开始按钮 -->
+            if (state.isRunning) {   <!-- 若切换到运行 -->
+                btn.textContent = '⏸ 暂停';   <!-- 按钮显示“暂停” -->
+                btn.classList.add('active');   <!-- 按钮高亮 -->
+                lastTime = 0;   <!-- 重置时间戳 -->
+                animFrameId = requestAnimationFrame(animLoop);   <!-- 启动动画循环 -->
+            } else {   <!-- 若切换到暂停 -->
+                btn.textContent = '▶ 开始';   <!-- 按钮显示“开始” -->
+                btn.classList.remove('active');   <!-- 移除高亮 -->
+                if (animFrameId) cancelAnimationFrame(animFrameId);   <!-- 取消下一帧请求，停止循环 -->
+                animFrameId = null;   <!-- 清空帧 id -->
+            }   <!-- if/else 结束 -->
+        }   <!-- toggleAnimation 结束 -->
+
+        function resetAnimation() {   <!-- 重置整个动画到初始状态 -->
+            state.isRunning = false;   <!-- 停止运行 -->
+            if (animFrameId) cancelAnimationFrame(animFrameId);   <!-- 取消动画帧 -->
+            animFrameId = null;   <!-- 清空帧 id -->
+            state.progress = 0;   <!-- 进度归零 -->
+            state.depth = 0;   <!-- 深度归零 -->
+            state.travelLength = 0;   <!-- 行程长度归零 -->
+            state.animTime = 0;   <!-- 动画时间归零 -->
+            state.phase = 'pilot';   <!-- 阶段回到导向钻进 -->
+            lastTime = 0;   <!-- 时间戳归零 -->
+            state.deviationEventTriggered = false;   <!-- 偏差事件标记清零 -->
+            state.autoEstopActive = false;   <!-- 自动急停标记清零 -->
+            state.estop = false;   <!-- 急停标记清零 -->
+            document.getElementById('btnEstop').textContent = '▮ 紧 急 停 钻';   <!-- 恢复急停按钮文字 -->
+            document.getElementById('btnEstop').style.background = '#2a1f1e';   <!-- 恢复急停按钮背景 -->
+            document.getElementById('btnEstop').style.borderColor = '#4a302e';   <!-- 恢复急停按钮边框 -->
+            document.getElementById('btnStart').textContent = '▶ 开始';   <!-- 开始按钮恢复“开始” -->
+            document.getElementById('btnStart').classList.remove('active');   <!-- 移除开始按钮高亮 -->
+            updatePhaseUI();   <!-- 刷新阶段指示点 -->
+            updateAllDisplays();   <!-- 刷新显示 -->
+            updateSVG();   <!-- 刷新剖面图 -->
+            drawAnimation();   <!-- 重绘动画 -->
+        }   <!-- resetAnimation 结束 -->
+
+        function cyclePhase() {   <!-- 手动循环切换施工阶段 -->
+            if (state.isRunning) return;   <!-- 运行中禁止切换阶段 -->
+            const phases = ['pilot', 'reaming', 'pullback'];   <!-- 三个阶段名称数组 -->
+            state.phase = phases[(phases.indexOf(state.phase) + 1) % 3];   <!-- 取下一阶段（循环取模） -->
+            state.progress = 0;   <!-- 进度归零 -->
+            state.depth = 0;   <!-- 深度归零 -->
+            state.travelLength = 0;   <!-- 行程归零 -->
+            state.animTime = 0;   <!-- 动画时间归零 -->
+            lastTime = 0;   <!-- 时间戳归零 -->
+            state.deviationEventTriggered = false;   <!-- 偏差事件标记清零 -->
+            state.autoEstopActive = false;   <!-- 自动急停清零 -->
+            state.estop = false;   <!-- 急停清零 -->
+            document.getElementById('btnEstop').textContent = '▮ 紧 急 停 钻';   <!-- 恢复急停按钮文字 -->
+            document.getElementById('btnEstop').style.background = '#2a1f1e';   <!-- 恢复背景 -->
+            document.getElementById('btnEstop').style.borderColor = '#4a302e';   <!-- 恢复边框 -->
+            updatePhaseUI();   <!-- 刷新阶段指示 -->
+            updateAllDisplays();   <!-- 刷新显示 -->
+            updateSVG();   <!-- 刷新剖面图 -->
+            drawAnimation();   <!-- 重绘动画 -->
+        }   <!-- cyclePhase 结束 -->
+
+        function updatePhaseUI() {   <!-- 更新阶段按钮文字和指示点状态 -->
+            const names = { pilot: '导向钻进', reaming: '分级扩孔', pullback: '管线回拖' };   <!-- 阶段对应的中文名 -->
+            document.getElementById('btnPhase').textContent = names[state.phase];   <!-- 更新阶段按钮文字 -->
+            document.getElementById('dotPilot').classList.toggle('on', state.phase === 'pilot');   <!-- 导向指示点按阶段切换 on 类 -->
+            document.getElementById('dotPilot').classList.toggle('yellow', state.phase === 'pilot');   <!-- 导向指示点切换黄色 -->
+            document.getElementById('dotReam').classList.toggle('on', state.phase === 'reaming');   <!-- 扩孔指示点切换 on -->
+            document.getElementById('dotReam').classList.toggle('orange', state.phase === 'reaming');   <!-- 扩孔指示点切换橙色 -->
+            document.getElementById('dotPull').classList.toggle('on', state.phase === 'pullback');   <!-- 回拖指示点切换 on -->
+            document.getElementById('dotPull').classList.toggle('green', state.phase === 'pullback');   <!-- 回拖指示点切换绿色 -->
+        }   <!-- updatePhaseUI 结束 -->
+
+        function setSpeed(v) {   <!-- 设置动画速度倍率 -->
+            state.speed = parseFloat(v);   <!-- 把滑块值转成浮点数存入 state -->
+            document.getElementById('speedLabel').textContent = v + '×';   <!-- 更新速度倍率标签显示 -->
+        }   <!-- setSpeed 结束 -->
+
+        /* 注释块：KEYBOARD 键盘快捷键 */
+        document.addEventListener('keydown', (e) => {   <!-- 监听全局键盘按下事件 -->
+            if (e.target.tagName === 'INPUT') return;   <!-- 焦点在输入框时不响应快捷键，避免冲突 -->
+            switch (e.key) {   <!-- 根据按下的键分发 -->
+                case 'ArrowUp':   <!-- 上方向键 -->
+                    e.preventDefault();   <!-- 阻止页面滚动等默认行为 -->
+                    adjustParam(e.shiftKey ? 'toolFace' : 'inclination', 0.1);   <!-- 按Shift调工具面角，否则调倾斜角，加0.1 -->
+                    break;   <!-- 结束上键分支 -->
+                case 'ArrowDown':   <!-- 下方向键 -->
+                    e.preventDefault();   <!-- 阻止默认行为 -->
+                    adjustParam(e.shiftKey ? 'toolFace' : 'inclination', -0.1);   <!-- 同上，减0.1 -->
+                    break;   <!-- 结束下键分支 -->
+                case 'ArrowRight':   <!-- 右方向键 -->
+                    e.preventDefault();   <!-- 阻止默认行为 -->
+                    adjustParam('azimuth', 0.1);   <!-- 方位角加0.1 -->
+                    break;   <!-- 结束右键分支 -->
+                case 'ArrowLeft':   <!-- 左方向键 -->
+                    e.preventDefault();   <!-- 阻止默认行为 -->
+                    adjustParam('azimuth', -0.1);   <!-- 方位角减0.1 -->
+                    break;   <!-- 结束左键分支 -->
+                case 'a':   <!-- 小写 a 键 -->
+                case 'A':   <!-- 大写 A 键 -->
+                    e.preventDefault();   <!-- 阻止默认行为 -->
+                    document.getElementById('toggleAuto').checked = !document.getElementById('toggleAuto').checked;   <!-- 切换自动纠偏复选框状态 -->
+                    toggleAutoCorrect();   <!-- 同步自动纠偏开关 -->
+                    break;   <!-- 结束 A 键分支 -->
+                case ' ':   <!-- 空格键 -->
+                    e.preventDefault();   <!-- 阻止页面滚动 -->
+                    toggleAnimation();   <!-- 启停动画 -->
+                    break;   <!-- 结束空格分支 -->
+                case 'r':   <!-- 小写 r 键 -->
+                case 'R':   <!-- 大写 R 键 -->
+                    if (!e.ctrlKey && !e.metaKey) { e.preventDefault();   <!-- 未按Ctrl/Cmd时，阻止默认并重置 -->
+                        resetAnimation(); }   <!-- 重置动画 -->
+                    break;   <!-- 结束 R 键分支 -->
+            }   <!-- switch 结束 -->
+        });   <!-- 键盘事件监听结束 -->
+
+        /* 注释块：INIT 初始化 */
+        resizeCanvas();   <!-- 再次确保画布尺寸正确 -->
+        updateAllDisplays();   <!-- 首次刷新所有数字显示为初始值 -->
+        updateSVG();   <!-- 首次生成剖面图 -->
+        updatePhaseUI();   <!-- 首次刷新阶段指示 -->
+        drawAnimation();   <!-- 首次绘制底部动画 -->
+    </script>   <!-- JavaScript 脚本结束 -->
+
+</body>   <!-- 页面可见内容结束 -->
+</html>   <!-- 网页文档结束 -->

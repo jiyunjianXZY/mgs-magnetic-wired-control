@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MGS 磁性有线控制系统 — 水平定向钻导向控制界面</title>
+    <style>
+        /* ============================================================
+           INDUSTRIAL CONTROL ROOM — 工业控制室风格
+           设计参考: Siemens HMI / ABB SCADA / 石油钻探控制台
+           ============================================================ */
+        :root {
+            --bg-deep: #161719;
+            --bg-panel: #1e2022;
+            --bg-input: #252729;
+            --border: #2e3033;
+            --border-active: #4a4d50;
+            --text-primary: #fff;
+            --text-secondary: #fff;
+            --text-dim: #fff;
+            --text-inverse: #1a1c1d;
+
+            /* 工业信号色 — 饱和度克制，无霓虹 */
+            --sig-yellow: #e8b82e;
+            /* 主黄色 — 统一参数色 */
+            --sig-white: #f2efe9;
+            --sig-orange: #d9782b;
+            --sig-red: #c43d36;
+            --sig-green: #4e8c41;
+            --sig-blue: #4e7d96;
+            --sig-steel: #6b7b8c;
+
+            --font-mono: 'Consolas', 'Monaco', 'Courier New', 'SF Mono', monospace;
+            --font-sans: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+            --font-display: 'DIN Alternate', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background: var(--bg-deep);
+            background-image:
+                repeating-linear-gradient(0deg,
+                transparent, transparent 2px,
+                rgba(255, 255, 255, 0.008) 2px,
+                rgba(255, 255, 255, 0.008) 4px);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ============================================================
+           HEADER — 紧凑设备顶栏
+           ============================================================ */
+        .header {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 20px;
+            background: #1c1d1f;
+            border-bottom: 1px solid var(--border);
+            z-index: 10;
+        }
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header-logo {
+            width: 28px;
+            height: 28px;
+            border: 1.5px solid var(--sig-steel);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #232528;
+        }
+        .header-logo svg {
+            width: 16px;
+            height: 16px;
+            fill: var(--sig-steel);
+        }
+        .header-title {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            color: var(--text-primary);
+            font-family: var(--font-display);
+        }
+        .header-title em {
+            font-style: normal;
+            color: var(--sig-yellow);
+            margin: 0 2px;
+        }
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .status-lamp {
+            width: 7px;
+            height: 7px;
+            background: var(--sig-green);
+        }
+        .status-lamp.warn {
+            background: var(--sig-orange);
+        }
+        .status-lamp.online {
+            background: var(--sig-green);
+        }
+        .header-stat strong {
+            color: var(--sig-white);
+            font-weight: 600;
+            margin: 0 3px;
+        }
+
+        /* ============================================================
+           MAIN LAYOUT — 三栏 + 底部 (左右加宽)
+           ============================================================ */
+        .main-grid {
+            flex: 1 1 0;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: 360px 1fr 360px;
+            grid-template-rows: 1fr auto;
+            gap: 4px;
+            padding: 4px 6px;
+        }
+
+        /* ============================================================
+           PANEL BASE — 工业面板
+           ============================================================ */
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .panel-header .pip {
+            width: 6px;
+            height: 6px;
+            flex-shrink: 0;
+        }
+        .panel-header .pip.yellow {
+            background: var(--sig-yellow);
+        }
+        .panel-header .pip.orange {
+            background: var(--sig-orange);
+        }
+        .panel-header .pip.red {
+            background: var(--sig-red);
+        }
+        .panel-header .pip.green {
+            background: var(--sig-green);
+        }
+        .panel-header .pip.blue {
+            background: var(--sig-blue);
+        }
+        .panel-header .pip.steel {
+            background: var(--sig-steel);
+        }
+
+        .panel-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        /* ============================================================
+           LEFT PANEL — 实时参数 (可滚动)  —— 字体放大填充留白
+           ============================================================ */
+        .left-panel {
+            grid-row: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
+            padding-right: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        .left-panel .panel {
+            flex: 1;
+            justify-content: flex-start;
+        }
+
+        .param-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+        }
+        .param-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .param-item:last-child {
+            border-bottom: none;
+        }
+        .param-key {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+        }
+        .param-val-wrap {
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .param-val {
+            font-family: var(--font-mono);
+            font-size: 38px;
+            /* 大幅放大 24→38 */
+            font-weight: 700;
+            color: var(--sig-yellow);
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+        }
+        .param-unit {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-left: 3px;
+            font-weight: 400;
+        }
+
+        /* 偏差条 */
+        .deviation-section {
+            margin-top: 2px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+        }
+        .deviation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 6px 0;
+        }
+        .deviation-header .param-key {
+            font-size: 15px;
+        }
+        .deviation-header .param-val {
+            font-size: 38px;
+            /* 大幅放大 */
+            color: var(--sig-yellow);
+        }
+        .deviation-bar-outer {
+            height: 10px;
+            /* 加高 5→10 */
+            background: var(--bg-input);
+            margin-top: 4px;
+            position: relative;
+            border-radius: 2px;
+        }
+        .deviation-bar-inner {
+            height: 100%;
+            width: 0%;
+            transition: width 0.4s ease, background 0.4s ease;
+            border-radius: 2px;
+        }
+        .deviation-bar-inner.safe {
+            background: var(--sig-green);
+            width: 12%;
+        }
+        .deviation-bar-inner.warn {
+            background: var(--sig-orange);
+            width: 55%;
+        }
+        .deviation-bar-inner.alarm {
+            background: var(--sig-red);
+            width: 92%;
+        }
+
+        .deviation-status {
+            font-size: 14px;
+            /* 放大 11→14 */
+            margin-top: 6px;
+            font-family: var(--font-mono);
+            font-weight: 500;
+            letter-spacing: 0.2px;
+        }
+        .deviation-status.safe {
+            color: var(--sig-green);
+        }
+        .deviation-status.warn {
+            color: var(--sig-orange);
+        }
+        .deviation-status.alarm {
+            color: var(--sig-red);
+            font-weight: 700;
+        }
+
+        /* ============================================================
+           CENTER — SVG 可视化
+           ============================================================ */
+        .center-panel {
+            grid-row: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            padding: 12px 14px;
+        }
+        #svgVis {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+        }
+
+        /* ============================================================
+           RIGHT PANEL — 微调控制 (可滚动, 紧凑) —— 字体放大填充留白
+           ============================================================ */
+        .right-panel {
+            grid-row: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
+            padding-right: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        .right-panel .panel {
+            flex: 1;
+            justify-content: flex-start;
+        }
+
+        .control-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+        }
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            /* 放大 4→8 */
+        }
+        .control-name {
+            font-size: 13px;
+            /* 放大 11→13 */
+            font-weight: 600;
+            letter-spacing: 1.2px;
+            color: var(--text-secondary);
+        }
+        .control-readout {
+            font-family: var(--font-mono);
+            font-size: 26px;
+            /* 放大 18→26 */
+            font-weight: 700;
+            color: var(--sig-yellow);
+            letter-spacing: 0.5px;
+        }
+
+        .stepper-row {
+            display: flex;
+            align-items: stretch;
+            gap: 4px;
+        }
+        .stepper-btn {
+            width: 40px;
+            /* 放大 32→40 */
+            height: 40px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.1s;
+            user-select: none;
+            font-family: var(--font-mono);
+            flex-shrink: 0;
+            border-radius: 2px;
+        }
+        .stepper-btn:hover {
+            border-color: var(--border-active);
+            background: #2c2e31;
+        }
+        .stepper-btn:active {
+            background: #333538;
+        }
+        .stepper-btn.fine {
+            font-size: 15px;
+            color: var(--text-secondary);
+        }
+
+        .stepper-display {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: 40px;
+            /* 大幅放大 26→40 */
+            font-weight: 700;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--sig-yellow);
+            min-width: 0;
+            padding: 0 4px;
+            letter-spacing: 0.5px;
+            border-radius: 2px;
+        }
+
+        /* 颜色标记 */
+        .c-sig-yellow {
+            color: var(--sig-yellow);
+        }
+        .c-sig-orange {
+            color: var(--sig-orange);
+        }
+        .c-sig-red {
+            color: var(--sig-red);
+        }
+        .c-sig-green {
+            color: var(--sig-green);
+        }
+        .c-sig-blue {
+            color: var(--sig-blue);
+        }
+        .c-sig-white {
+            color: var(--sig-white);
+        }
+
+        .border-yellow {
+            border-left: 3px solid var(--sig-yellow);
+            padding-left: 15px;
+        }
+        .border-orange {
+            border-left: 3px solid var(--sig-orange);
+            padding-left: 15px;
+        }
+        .border-red {
+            border-left: 3px solid var(--sig-red);
+            padding-left: 15px;
+        }
+        .border-green {
+            border-left: 3px solid var(--sig-green);
+            padding-left: 15px;
+        }
+        .border-blue {
+            border-left: 3px solid var(--sig-blue);
+            padding-left: 15px;
+        }
+
+        /* 开关 & 按钮 */
+        .mode-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+        }
+        .mode-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .mode-row:first-child {
+            border-top: none;
+        }
+        .mode-label {
+            font-size: 13px;
+            /* 放大 */
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .toggle-track {
+            position: relative;
+            width: 44px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+        .toggle-track input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-bg {
+            position: absolute;
+            inset: 0;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 11px;
+        }
+        .toggle-bg::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            left: 2px;
+            top: 2px;
+            background: var(--text-dim);
+            transition: all 0.2s;
+            border-radius: 50%;
+        }
+        .toggle-track input:checked+.toggle-bg {
+            background: var(--sig-green);
+            border-color: var(--sig-green);
+        }
+        .toggle-track input:checked+.toggle-bg::after {
+            left: 24px;
+            background: #fff;
+        }
+
+        .btn-block {
+            display: block;
+            width: 100%;
+            padding: 10px 0;
+            /* 放大 */
+            border: 1px solid var(--border);
+            font-size: 13px;
+            /* 放大 */
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s;
+            font-family: var(--font-sans);
+            margin-top: 6px;
+            border-radius: 2px;
+        }
+        .btn-block.btn-estop {
+            background: #2a1f1e;
+            color: var(--sig-red);
+            border-color: #4a302e;
+        }
+        .btn-block.btn-estop:hover {
+            background: #3a2625;
+            border-color: #6a3a36;
+        }
+        .btn-block.btn-reset {
+            background: var(--bg-input);
+            color: var(--text-secondary);
+        }
+        .btn-block.btn-reset:hover {
+            background: #2c2e31;
+            color: var(--text-primary);
+            border-color: var(--border-active);
+        }
+
+        /* 键盘快显 */
+        .key-hints {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 12px;
+            font-size: 12px;
+            /* 放大 10→12 */
+            color: var(--text-dim);
+            flex: 1;
+            align-content: center;
+        }
+        .key-hints span {
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* ============================================================
+           BOTTOM — 动画区域
+           ============================================================ */
+        .bottom-panel {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            min-height: 200px;
+            max-height: 280px;
+            padding: 12px 14px;
+        }
+        .canvas-wrap {
+            flex: 1;
+            min-height: 0;
+            background: #111213;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .canvas-wrap canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .anim-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-top: 8px;
+            flex-shrink: 0;
+        }
+        .anim-btn {
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 1px;
+            transition: all 0.15s;
+            font-family: var(--font-sans);
+            border-radius: 2px;
+        }
+        .anim-btn:hover {
+            border-color: var(--border-active);
+            color: var(--text-primary);
+        }
+        .anim-btn.active {
+            border-color: var(--sig-yellow);
+            color: var(--sig-yellow);
+            background: #252218;
+        }
+
+        .anim-speed-slider {
+            -webkit-appearance: none;
+            width: 72px;
+            height: 4px;
+            background: var(--border);
+            outline: none;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+        .anim-speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--sig-yellow);
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .speed-label {
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--text-dim);
+            min-width: 32px;
+            font-weight: 500;
+        }
+
+        .phase-dots {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: auto;
+        }
+        .phase-tag {
+            font-size: 10px;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+        }
+        .phase-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        .phase-dot.on.yellow {
+            background: var(--sig-yellow);
+            border-color: var(--sig-yellow);
+        }
+        .phase-dot.on.orange {
+            background: var(--sig-orange);
+            border-color: var(--sig-orange);
+        }
+        .phase-dot.on.green {
+            background: var(--sig-green);
+            border-color: var(--sig-green);
+        }
+
+        /* ============================================================
+           ALERT FLASH (偏差超标)
+           ============================================================ */
+        .alert-border {
+            animation: alertBorder 0.6s ease-in-out 4;
+        }
+        @keyframes alertBorder {
+            0%,
+            100% {
+                border-color: var(--border);
+            }
+            50% {
+                border-color: var(--sig-red);
+            }
+        }
+
+        /* 滚动条 */
+        .left-panel::-webkit-scrollbar,
+        .right-panel::-webkit-scrollbar {
+            width: 4px;
+        }
+        .left-panel::-webkit-scrollbar-track,
+        .right-panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .left-panel::-webkit-scrollbar-thumb,
+        .right-panel::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 2px;
+        }
+        .left-panel::-webkit-scrollbar-thumb:hover,
+        .right-panel::-webkit-scrollbar-thumb:hover {
+            background: var(--border-active);
+        }
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
+        @media (max-width: 1400px) {
+            .main-grid {
+                grid-template-columns: 320px 1fr 320px;
+            }
+            .param-val {
+                font-size: 32px;
+            }
+            .stepper-display {
+                font-size: 34px;
+            }
+            .deviation-header .param-val {
+                font-size: 32px;
+            }
+        }
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 280px 1fr 280px;
+            }
+            .param-val {
+                font-size: 28px;
+            }
+            .stepper-display {
+                font-size: 30px;
+            }
+            .deviation-header .param-val {
+                font-size: 28px;
+            }
+            .control-readout {
+                font-size: 22px;
+            }
+            .stepper-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 17px;
+            }
+        }
+        @media (max-width: 1000px) {
+            html,
+            body {
+                overflow: auto;
+            }
+            .main-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 1fr auto;
+                height: auto;
+                overflow: visible;
+            }
+            .left-panel,
+            .right-panel {
+                flex-direction: row;
+                flex-wrap: wrap;
+                overflow-y: visible;
+                max-height: none;
+            }
+            .left-panel .panel,
+            .right-panel .panel {
+                flex: 1 1 200px;
+                min-width: 180px;
+            }
+            #svgVis {
+                min-height: 300px;
+            }
+            .bottom-panel {
+                min-height: 240px;
+                max-height: 360px;
+            }
+            .param-val {
+                font-size: 28px;
+            }
+            .stepper-display {
+                font-size: 30px;
+            }
+            .deviation-header .param-val {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================
+         HEADER
+         ============================================================ -->
+    <header class="header">
+        <div class="header-brand">
+            <div class="header-logo">
+                <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+            <div class="header-title">MGS<em>·</em>磁性有线控制系统 — 水平定向钻导向界面</div>
+        </div>
+        <div class="header-status">
+            <div class="status-indicator"><span class="status-lamp online"></span> 系统在线</div>
+            <div class="status-indicator"><span class="status-lamp online"></span> 信号 <strong>97%</strong></div>
+            <div class="header-stat">探棒 <strong>42°C</strong></div>
+            <div class="header-stat">SYS <strong>v3.2.1</strong></div>
+        </div>
+    </header>
+
+    <!-- ============================================================
+         MAIN GRID
+         ============================================================ -->
+    <div class="main-grid">
+
+        <!-- ========== LEFT: 实时参数 ========== -->
+        <div class="left-panel">
+
+            <div class="panel border-yellow">
+                <div class="panel-header">
+                    <span class="pip yellow"></span>
+                    <span class="panel-label">核心姿态参数</span>
+                </div>
+                <div class="param-group">
+                    <div class="param-item">
+                        <span class="param-key">工具面角 Tool Face</span>
+                        <span class="param-val-wrap"><span class="param-val" id="valToolFace">0.0</span><span class="param-unit">°</span></span>
+                    </div>
+                    <div class="param-item">
+                        <span class="param-key">方位角 Azimuth</span>
+                        <span class="param-val-wrap"><span class="param-val" id="valAzimuth">0.0</span><span class="param-unit">°</span></span>
+                    </div>
+                    <div class="param-item">
+                        <span class="param-key">倾斜角 Inclination</span>
+                        <span class="param-val-wrap"><span class="param-val" id="valInclination">15.0</span><span class="param-unit">°</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel border-blue">
+                <div class="panel-header">
+                    <span class="pip blue"></span>
+                    <span class="panel-label">钻进状态</span>
+                </div>
+                <div class="param-group">
+                    <div class="param-item">
+                        <span class="param-key">当前深度</span>
+                        <span class="param-val-wrap"><span class="param-val" id="valDepth">0.0</span><span class="param-unit">m</span></span>
+                    </div>
+                    <div class="param-item">
+                        <span class="param-key">行程长度</span>
+                        <span class="param-val-wrap"><span class="param-val" id="valTravel">0.0</span><span class="param-unit">m</span></span>
+                    </div>
+                    <div class="param-item">
+                        <span class="param-key">钻进进度</span>
+                        <span class="param-val-wrap"><span class="param-val" id="valProgress">0</span><span class="param-unit">%</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel border-red" id="deviationPanel">
+                <div class="panel-header">
+                    <span class="pip red"></span>
+                    <span class="panel-label">轨迹偏差监控</span>
+                </div>
+                <div class="deviation-section">
+                    <div class="deviation-header">
+                        <span class="param-key">偏差距离</span>
+                        <span class="param-val-wrap"><span class="param-val" id="valDeviation">0.000</span><span class="param-unit">m</span></span>
+                    </div>
+                    <div class="deviation-bar-outer">
+                        <div class="deviation-bar-inner safe" id="devBar"></div>
+                    </div>
+                    <div class="deviation-status safe" id="devStatus">◉ 偏差正常 — 在允许范围内</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ========== CENTER: SVG 可视化 ========== -->
+        <div class="panel center-panel">
+            <div class="panel-header">
+                <span class="pip steel"></span>
+                <span class="panel-label">地下钻进轨迹 — 实时剖面视图</span>
+            </div>
+            <svg id="svgVis" viewBox="0 0 700 400" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+
+        <!-- ========== RIGHT: 微调控制 ========== -->
+        <div class="right-panel">
+
+            <!-- 工具面角 -->
+            <div class="panel border-yellow">
+                <div class="panel-header">
+                    <span class="pip yellow"></span>
+                    <span class="panel-label">工具面角微调</span>
+                </div>
+                <div class="control-group">
+                    <div class="control-row">
+                        <span class="control-name">TOOL FACE ANGLE</span>
+                        <span class="control-readout" id="dispToolFace">0.0°</span>
+                    </div>
+                    <div class="stepper-row">
+                        <button class="stepper-btn fine" onclick="adjustParam('toolFace',-0.1)" title="−0.1°">«</button>
+                        <button class="stepper-btn" onclick="adjustParam('toolFace',-1)" title="−1°">−</button>
+                        <div class="stepper-display" id="ctrlToolFace">0.0</div>
+                        <button class="stepper-btn" onclick="adjustParam('toolFace',1)" title="+1°">+</button>
+                        <button class="stepper-btn fine" onclick="adjustParam('toolFace',0.1)" title="+0.1°">»</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 方位角 -->
+            <div class="panel border-orange">
+                <div class="panel-header">
+                    <span class="pip orange"></span>
+                    <span class="panel-label">方位角微调</span>
+                </div>
+                <div class="control-group">
+                    <div class="control-row">
+                        <span class="control-name">AZIMUTH</span>
+                        <span class="control-readout" id="dispAzimuth">0.0°</span>
+                    </div>
+                    <div class="stepper-row">
+                        <button class="stepper-btn fine" onclick="adjustParam('azimuth',-0.1)">«</button>
+                        <button class="stepper-btn" onclick="adjustParam('azimuth',-1)">−</button>
+                        <div class="stepper-display" id="ctrlAzimuth">0.0</div>
+                        <button class="stepper-btn" onclick="adjustParam('azimuth',1)">+</button>
+                        <button class="stepper-btn fine" onclick="adjustParam('azimuth',0.1)">»</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 倾斜角 -->
+            <div class="panel border-blue" style="border-left-color:var(--sig-steel);">
+                <div class="panel-header">
+                    <span class="pip steel"></span>
+                    <span class="panel-label">倾斜角微调</span>
+                </div>
+                <div class="control-group">
+                    <div class="control-row">
+                        <span class="control-name">INCLINATION</span>
+                        <span class="control-readout" id="dispInclination">15.0°</span>
+                    </div>
+                    <div class="stepper-row">
+                        <button class="stepper-btn fine" onclick="adjustParam('inclination',-0.1)">«</button>
+                        <button class="stepper-btn" onclick="adjustParam('inclination',-1)">−</button>
+                        <div class="stepper-display" id="ctrlInclination">15.0</div>
+                        <button class="stepper-btn" onclick="adjustParam('inclination',1)">+</button>
+                        <button class="stepper-btn fine" onclick="adjustParam('inclination',0.1)">»</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作模式 & 急停 -->
+            <div class="panel" style="border-left:3px solid var(--border-active);padding-left:15px;">
+                <div class="panel-header">
+                    <span class="pip steel"></span>
+                    <span class="panel-label">操作模式</span>
+                </div>
+                <div class="mode-section">
+                    <div class="mode-row">
+                        <span class="mode-label">自动纠偏</span>
+                        <label class="toggle-track">
+                            <input type="checkbox" id="toggleAuto" onchange="toggleAutoCorrect()">
+                            <span class="toggle-bg"></span>
+                        </label>
+                    </div>
+                    <div class="mode-row">
+                        <span class="mode-label">偏差告警状态</span>
+                        <span style="font-size:13px;font-family:var(--font-mono);color:var(--sig-green);font-weight:600;" id="alarmStatus">NORMAL</span>
+                    </div>
+                </div>
+                <button class="btn-block btn-estop" id="btnEstop" onclick="emergencyStop()">
+                    ▮ 紧 急 停 钻
+                </button>
+                <button class="btn-block btn-reset" onclick="resetToTarget()">
+                    ↻ 复位至设计轨迹
+                </button>
+            </div>
+
+            <!-- 键盘快捷键 -->
+            <div class="panel" style="border-left:3px solid rgba(255,255,255,0.06);padding-left:15px;">
+                <div class="panel-header">
+                    <span class="pip" style="background:var(--text-dim)"></span>
+                    <span class="panel-label">键盘快捷键</span>
+                </div>
+                <div class="key-hints">
+                    <div><span>↑↓</span> 倾斜角 ±0.1°</div>
+                    <div><span>←→</span> 方位角 ±0.1°</div>
+                    <div><span>Sh+↑↓</span> 工具面角</div>
+                    <div><span>A</span> 自动纠偏</div>
+                    <div><span>Space</span> 动画启停</div>
+                    <div><span>R</span> 重置动画</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== BOTTOM: 施工动画 ========== -->
+        <div class="panel bottom-panel">
+            <div class="panel-header">
+                <span class="pip steel"></span>
+                <span class="panel-label">水平定向钻施工过程模拟</span>
+            </div>
+            <div class="canvas-wrap">
+                <canvas id="animCanvas"></canvas>
+            </div>
+            <div class="anim-bar">
+                <button class="anim-btn" id="btnStart" onclick="toggleAnimation()">▶ 开始</button>
+                <button class="anim-btn" onclick="resetAnimation()">↺ 重置</button>
+                <button class="anim-btn" id="btnPhase" onclick="cyclePhase()">导向钻进</button>
+                <span style="font-size:11px;color:var(--text-dim);margin-left:6px;">速度</span>
+                <input type="range" class="anim-speed-slider" min="0.25" max="3" step="0.25" value="1" oninput="setSpeed(this.value)">
+                <span class="speed-label" id="speedLabel">1×</span>
+                <div class="phase-dots">
+                    <span class="phase-tag">导向</span><span class="phase-dot on yellow" id="dotPilot"></span>
+                    <span class="phase-tag">扩孔</span><span class="phase-dot" id="dotReam"></span>
+                    <span class="phase-tag">回拖</span><span class="phase-dot" id="dotPull"></span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* ============================================================
+           STATE
+           ============================================================ */
+        const state = {
+            toolFace: 0,
+            azimuth: 0,
+            inclination: 15,
+            targetToolFace: 0,
+            targetAzimuth: 0,
+            targetInclination: 5,
+            depth: 0,
+            travelLength: 0,
+            progress: 0,
+            deviation: 0,
+            autoCorrect: false,
+            estop: false,
+            deviationEventTriggered: false,
+            autoEstopActive: false,
+            isRunning: false,
+            speed: 1,
+            phase: 'pilot',
+            animTime: 0,
+        };
+
+        const designPath = [
+            { x: 50, y: 60 }, { x: 120, y: 90 }, { x: 200, y: 140 },
+            { x: 300, y: 200 }, { x: 400, y: 240 }, { x: 500, y: 260 },
+            { x: 580, y: 270 }, { x: 650, y: 275 }
+        ];
+        let actualPath = designPath.map(p => ({ ...p }));
+
+        /* ============================================================
+           UTILS
+           ============================================================ */
+        function clamp(v, mn, mx) { return Math.max(mn, Math.min(mx, v)); }
+
+        /* ============================================================
+           CATMULL-ROM SPLINE — 生成平滑轨迹
+           ============================================================ */
+        function catmullRomPoints(points, segmentsPerSegment) {
+            if (points.length < 2) return points.slice();
+            const seg = segmentsPerSegment || 24;
+            const result = [];
+            const pts = [
+                { x: points[0].x - (points[1].x - points[0].x) * 0.5, y: points[0].y - (points[1].y - points[0].y) * 0.5 },
+                ...points,
+                { x: points[points.length - 1].x + (points[points.length - 1].x - points[points.length - 2].x) * 0.5,
+                    y: points[points.length - 1].y + (points[points.length - 1].y - points[points.length - 2].y) * 0.5 }
+            ];
+            for (let i = 1; i < pts.length - 2; i++) {
+                const p0 = pts[i - 1],
+                    p1 = pts[i],
+                    p2 = pts[i + 1],
+                    p3 = pts[i + 2];
+                for (let t = 0; t < 1; t += 1 / seg) {
+                    const t2 = t * t,
+                        t3 = t2 * t;
+                    const x = 0.5 * (
+                        (2 * p1.x) + (-p0.x + p2.x) * t +
+                        (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+                        (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3
+                    );
+                    const y = 0.5 * (
+                        (2 * p1.y) + (-p0.y + p2.y) * t +
+                        (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+                        (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3
+                    );
+                    result.push({ x, y });
+                }
+            }
+            result.push(points[points.length - 1]);
+            return result;
+        }
+
+        /* ============================================================
+           SVG PATH BUILDER
+           ============================================================ */
+        function buildPathD(pts, segPerSeg) {
+            if (!pts || pts.length < 2) return '';
+            const smooth = catmullRomPoints(pts, segPerSeg || 20);
+            let d = `M ${smooth[0].x.toFixed(2)} ${smooth[0].y.toFixed(2)}`;
+            for (let i = 1; i < smooth.length; i++) {
+                d += ` L ${smooth[i].x.toFixed(2)} ${smooth[i].y.toFixed(2)}`;
+            }
+            return d;
+        }
+
+        /* ============================================================
+           PARAMETER ADJUSTMENT
+           ============================================================ */
+        function adjustParam(param, delta) {
+            if (state.estop && !state.autoEstopActive) return;
+            switch (param) {
+                case 'toolFace':
+                    state.toolFace = clamp(state.toolFace + delta, 0, 360);
+                    break;
+                case 'azimuth':
+                    state.azimuth = clamp(state.azimuth + delta, -45, 45);
+                    break;
+                case 'inclination':
+                    state.inclination = clamp(state.inclination + delta, 0, 60);
+                    break;
+            }
+            updateDeviation();
+            updateAllDisplays();
+            updateSVG();
+        }
+
+        function toggleAutoCorrect() {
+            state.autoCorrect = document.getElementById('toggleAuto').checked;
+        }
+
+        function triggerDeviationEvent() {
+            state.deviationEventTriggered = true;
+            state.autoEstopActive = true;
+            state.estop = true;
+            state.isRunning = false;
+
+            const azSign = Math.random() > 0.5 ? 1 : -1;
+            const incSign = Math.random() > 0.5 ? 1 : -1;
+            state.azimuth = clamp(state.azimuth + azSign * (8 + Math.random() * 8), -45, 45);
+            state.inclination = clamp(state.inclination + incSign * (5 + Math.random() * 6), 0, 60);
+            state.toolFace = clamp(state.toolFace + (Math.random() > 0.5 ? 1 : -1) * (15 + Math.random() * 25), 0, 360);
+
+            updateDeviation();
+
+            const btn = document.getElementById('btnEstop');
+            btn.textContent = '▮ 急停已激活 — 点击解锁';
+            btn.style.background = '#3a1816';
+            btn.style.borderColor = '#6a2a24';
+
+            document.getElementById('btnStart').textContent = '▶ 开始';
+            document.getElementById('btnStart').classList.remove('active');
+
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+            animFrameId = null;
+
+            updateAllDisplays();
+            updateSVG();
+            drawAnimation();
+        }
+
+        function emergencyStop() {
+            if (state.autoEstopActive) {
+                state.estop = false;
+                state.autoEstopActive = false;
+                const btn = document.getElementById('btnEstop');
+                btn.textContent = '▮ 紧 急 停 钻';
+                btn.style.background = '#2a1f1e';
+                btn.style.borderColor = '#4a302e';
+                state.isRunning = true;
+                document.getElementById('btnStart').textContent = '⏸ 暂停';
+                document.getElementById('btnStart').classList.add('active');
+                lastTime = 0;
+                animFrameId = requestAnimationFrame(animLoop);
+                return;
+            }
+
+            state.estop = !state.estop;
+            const btn = document.getElementById('btnEstop');
+            if (state.estop) {
+                btn.textContent = '▮ 急停已激活 — 点击解除';
+                btn.style.background = '#3a1816';
+                btn.style.borderColor = '#6a2a24';
+                state.isRunning = false;
+                document.getElementById('btnStart').textContent = '▶ 开始';
+                document.getElementById('btnStart').classList.remove('active');
+            } else {
+                btn.textContent = '▮ 紧 急 停 钻';
+                btn.style.background = '#2a1f1e';
+                btn.style.borderColor = '#4a302e';
+            }
+        }
+
+        function resetToTarget() {
+            state.toolFace = state.targetToolFace;
+            state.azimuth = state.targetAzimuth;
+            state.inclination = state.targetInclination;
+            state.deviation = 0;
+            actualPath = designPath.map(p => ({ ...p }));
+            updateAllDisplays();
+            updateSVG();
+        }
+
+        /* ============================================================
+           DEVIATION
+           ============================================================ */
+        function updateDeviation() {
+            const dAz = state.azimuth - state.targetAzimuth;
+            const dInc = state.inclination - state.targetInclination;
+            const angDev = Math.sqrt(dAz * dAz + dInc * dInc);
+            state.deviation = angDev * (state.travelLength || 10) * 0.01745;
+        }
+
+        function autoCorrectStep(dt) {
+            if (!state.autoCorrect || state.estop) return;
+            const Kp = 0.5;
+            const dAz = state.targetAzimuth - state.azimuth;
+            const dInc = state.targetInclination - state.inclination;
+            if (Math.abs(dAz) > 0.05) {
+                state.azimuth = clamp(state.azimuth + clamp(Kp * dAz * dt, -2 * dt, 2 * dt), -45, 45);
+            }
+            if (Math.abs(dInc) > 0.05) {
+                state.inclination = clamp(state.inclination + clamp(Kp * dInc * dt, -2 * dt, 2 * dt), 0, 60);
+            }
+            updateDeviation();
+        }
+
+        /* ============================================================
+           DISPLAY UPDATE
+           ============================================================ */
+        function updateAllDisplays() {
+            document.getElementById('valToolFace').textContent = state.toolFace.toFixed(1);
+            document.getElementById('valAzimuth').textContent = state.azimuth.toFixed(1);
+            document.getElementById('valInclination').textContent = state.inclination.toFixed(1);
+            document.getElementById('valDepth').textContent = state.depth.toFixed(1);
+            document.getElementById('valTravel').textContent = state.travelLength.toFixed(1);
+            document.getElementById('valProgress').textContent = Math.round(state.progress);
+            document.getElementById('valDeviation').textContent = state.deviation.toFixed(3);
+
+            document.getElementById('dispToolFace').textContent = state.toolFace.toFixed(1) + '°';
+            document.getElementById('dispAzimuth').textContent = state.azimuth.toFixed(1) + '°';
+            document.getElementById('dispInclination').textContent = state.inclination.toFixed(1) + '°';
+
+            document.getElementById('ctrlToolFace').textContent = state.toolFace.toFixed(1);
+            document.getElementById('ctrlAzimuth').textContent = state.azimuth.toFixed(1);
+            document.getElementById('ctrlInclination').textContent = state.inclination.toFixed(1);
+
+            const devBar = document.getElementById('devBar');
+            const devStatus = document.getElementById('devStatus');
+            const alarmEl = document.getElementById('alarmStatus');
+            const devPanel = document.getElementById('deviationPanel');
+            const maxDev = Math.max((state.travelLength || 100) * 0.01, 0.01);
+            const devPct = Math.min((state.deviation / maxDev) * 100, 100);
+
+            devBar.classList.remove('safe', 'warn', 'alarm');
+            devStatus.classList.remove('safe', 'warn', 'alarm');
+            devPanel.classList.remove('alert-border');
+
+            if (state.deviation < maxDev * 0.5) {
+                devBar.classList.add('safe');
+                devStatus.classList.add('safe');
+                devStatus.innerHTML = '◉ 偏差正常 — 在允许范围内';
+                alarmEl.innerHTML = 'NORMAL';
+                alarmEl.style.color = 'var(--sig-green)';
+            } else if (state.deviation < maxDev) {
+                devBar.classList.add('warn');
+                devStatus.classList.add('warn');
+                devStatus.innerHTML = '◉ 偏差警告 — 接近阈值';
+                alarmEl.innerHTML = 'WARNING';
+                alarmEl.style.color = 'var(--sig-orange)';
+            } else {
+                devBar.classList.add('alarm');
+                devStatus.classList.add('alarm');
+                devStatus.innerHTML = '◉ 偏差超标！请立即纠偏';
+                alarmEl.innerHTML = 'ALARM';
+                alarmEl.style.color = 'var(--sig-red)';
+                devPanel.classList.add('alert-border');
+            }
+        }
+
+        /* ============================================================
+           SVG VISUALIZATION
+           ============================================================ */
+        function updateSVG() {
+            const svg = document.getElementById('svgVis');
+            const W = 700,
+                H = 400;
+
+            actualPath = designPath.map((p, i) => {
+                const t = i / (designPath.length - 1);
+                return {
+                    x: p.x + state.azimuth * t * 1.2,
+                    y: p.y + (state.inclination - state.targetInclination) * t * 0.8
+                };
+            });
+
+            const progressIdx = state.progress / 100;
+            const pathIdx = progressIdx * (designPath.length - 1);
+            const iFloor = Math.min(Math.floor(pathIdx), designPath.length - 2);
+            const iFrac = pathIdx - iFloor;
+            const a0 = actualPath[iFloor];
+            const a1 = actualPath[Math.min(iFloor + 1, actualPath.length - 1)];
+            const headX = a0.x + (a1.x - a0.x) * iFrac;
+            const headY = a0.y + (a1.y - a0.y) * iFrac;
+            const headAngle = Math.atan2(a1.y - a0.y, a1.x - a0.x) * 180 / Math.PI + state.inclination * 0.3;
+
+            const isAlarm = state.deviation > Math.max((state.travelLength || 100) * 0.01, 0.01);
+            const actualColor = isAlarm ? '#c43d36' : '#e8b82e';
+
+            let h = '';
+
+            for (let x = 0; x <= W; x += 50) h +=
+                `<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="rgba(255,255,255,0.025)" stroke-width="1"/>`;
+            for (let y = 0; y <= H; y += 50) h +=
+                `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="rgba(255,255,255,0.025)" stroke-width="1"/>`;
+
+            h += `<rect x="0" y="70" width="${W}" height="90" fill="#292a26"/>`;
+            h += `<rect x="0" y="160" width="${W}" height="100" fill="#2a2924"/>`;
+            h += `<rect x="0" y="260" width="${W}" height="140" fill="#252524"/>`;
+            h += `<text x="8" y="120" fill="#5f5b56" font-size="10" font-family="var(--font-sans)">表土层</text>`;
+            h += `<text x="8" y="215" fill="#5f5b56" font-size="10" font-family="var(--font-sans)">粘土层</text>`;
+            h += `<text x="8" y="335" fill="#5f5b56" font-size="10" font-family="var(--font-sans)">岩 层</text>`;
+
+            h += `<line x1="0" y1="70" x2="${W}" y2="55" stroke="#6b7b8c" stroke-width="2"/>`;
+            h += `<text x="660" y="50" fill="#6b7b8c" font-size="10">▲ 地面</text>`;
+
+            h += `<path d="${buildPathD(designPath)}" fill="none" stroke="#4e7d96" stroke-width="1.8" stroke-dasharray="8 5" opacity="0.7" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+            h +=
+                `<path d="${buildPathD(actualPath)}" fill="none" stroke="${actualColor}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+            h += `<circle cx="${designPath[0].x}" cy="${designPath[0].y}" r="5" fill="#4e8c41"/>`;
+            h += `<text x="${designPath[0].x-10}" y="${designPath[0].y-10}" fill="#4e8c41" font-size="10" text-anchor="end">入土点</text>`;
+            const lastP = designPath[designPath.length - 1];
+            h += `<circle cx="${lastP.x}" cy="${lastP.y}" r="5" fill="#4e8c41"/>`;
+            h += `<text x="${lastP.x+12}" y="${lastP.y-6}" fill="#4e8c41" font-size="10">出土点</text>`;
+
+            if (state.progress > 0.5 && state.progress < 99.5) {
+                const rad = headAngle * Math.PI / 180;
+                h +=
+                    `<ellipse cx="${headX}" cy="${headY}" rx="11" ry="6" fill="#e8b82e" stroke="#1e2022" stroke-width="1.2" transform="rotate(${headAngle},${headX},${headY})"/>`;
+                h +=
+                    `<line x1="${headX}" y1="${headY}" x2="${headX+Math.cos(rad)*26}" y2="${headY+Math.sin(rad)*26}" stroke="#d9782b" stroke-width="2" stroke-dasharray="4 3"/>`;
+                const tfRad = (headAngle + state.toolFace) * Math.PI / 180;
+                h +=
+                    `<line x1="${headX-Math.cos(tfRad)*9}" y1="${headY-Math.sin(tfRad)*9}" x2="${headX+Math.cos(tfRad)*9}" y2="${headY+Math.sin(tfRad)*9}" stroke="#6b7b8c" stroke-width="1.5"/>`;
+            }
+
+            h +=
+                `<line x1="680" y1="70" x2="700" y2="70" stroke="rgba(255,255,255,0.08)" stroke-width="1"/><text x="684" y="73" fill="#5f5b56" font-size="9">0 m</text>`;
+            h +=
+                `<line x1="680" y1="200" x2="700" y2="200" stroke="rgba(255,255,255,0.08)" stroke-width="1"/><text x="684" y="203" fill="#5f5b56" font-size="9">15 m</text>`;
+            h +=
+                `<line x1="680" y1="335" x2="700" y2="335" stroke="rgba(255,255,255,0.08)" stroke-width="1"/><text x="684" y="338" fill="#5f5b56" font-size="9">30 m</text>`;
+
+            h +=
+                `<line x1="16" y1="380" x2="46" y2="380" stroke="#4e7d96" stroke-width="1.5" stroke-dasharray="6 4"/><text x="52" y="384" fill="#5f5b56" font-size="10">设计轨迹</text>`;
+            h +=
+                `<line x1="130" y1="380" x2="160" y2="380" stroke="${actualColor}" stroke-width="2"/><text x="166" y="384" fill="#5f5b56" font-size="10">实际轨迹</text>`;
+
+            if (state.deviation > 0.05) {
+                const mp = designPath[4],
+                    ma = actualPath[4];
+                h +=
+                    `<line x1="${mp.x}" y1="${mp.y}" x2="${ma.x}" y2="${ma.y}" stroke="#c43d36" stroke-width="1" stroke-dasharray="2 3"/>`;
+                h +=
+                    `<text x="${(mp.x+ma.x)/2+5}" y="${(mp.y+ma.y)/2-4}" fill="#c43d36" font-size="10" font-family="var(--font-mono)">Δ${state.deviation.toFixed(2)}m</text>`;
+            }
+
+            svg.innerHTML = h;
+        }
+
+        /* ============================================================
+           CANVAS ANIMATION
+           ============================================================ */
+        const canvas = document.getElementById('animCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const wrap = canvas.parentElement;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = wrap.clientWidth * dpr;
+            canvas.height = wrap.clientHeight * dpr;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+            canvas.style.width = wrap.clientWidth + 'px';
+            canvas.style.height = wrap.clientHeight + 'px';
+        }
+        resizeCanvas();
+        window.addEventListener('resize', () => { resizeCanvas();
+            drawAnimation(); });
+
+        function drawAnimation() {
+            const W = canvas.clientWidth,
+                H = canvas.clientHeight;
+            ctx.clearRect(0, 0, W, H);
+
+            const groundY = H * 0.22;
+
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+            skyGrad.addColorStop(0, '#1c1d1f');
+            skyGrad.addColorStop(1, '#212325');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, W, groundY);
+
+            ctx.strokeStyle = '#6b7b8c';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(W, groundY);
+            ctx.stroke();
+            ctx.setLineDash([2, 6]);
+            ctx.strokeStyle = '#4a4d50';
+            ctx.beginPath();
+            ctx.moveTo(0, groundY - 2);
+            ctx.lineTo(W, groundY - 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            const layers = [
+                { y: groundY, h: H * 0.2, c: '#292a26' },
+                { y: groundY + H * 0.2, h: H * 0.3, c: '#2a2924' },
+                { y: groundY + H * 0.5, h: H * 0.3, c: '#252524' },
+            ];
+            layers.forEach(l => { ctx.fillStyle = l.c;
+                ctx.fillRect(0, l.y, W, l.h); });
+
+            layers.forEach(l => {
+                ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+                ctx.lineWidth = 0.8;
+                ctx.beginPath();
+                ctx.moveTo(0, l.y);
+                for (let x = 0; x < W; x += 24) ctx.lineTo(x, l.y + Math.sin(x * 0.01) * 3);
+                ctx.stroke();
+            });
+
+            ctx.fillStyle = '#5f5b56';
+            ctx.font = '10px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.fillText('表土层', 8, groundY + 18);
+            ctx.fillText('粘土层', 8, groundY + H * 0.2 + 18);
+            ctx.fillText('岩  层', 8, groundY + H * 0.5 + 40);
+
+            const rigX = W * 0.08,
+                rigBaseY = groundY - 6;
+            ctx.fillStyle = '#232528';
+            ctx.strokeStyle = '#6b7b8c';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            const rrx = rigX - 22,
+                rry = rigBaseY - 34,
+                rrw = 44,
+                rrh = 36,
+                rrr = 3;
+            ctx.moveTo(rrx + rrr, rry);
+            ctx.lineTo(rrx + rrw - rrr, rry);
+            ctx.arcTo(rrx + rrw, rry, rrx + rrw, rry + rrr, rrr);
+            ctx.lineTo(rrx + rrw, rry + rrh - rrr);
+            ctx.arcTo(rrx + rrw, rry + rrh, rrx + rrw - rrr, rry + rrh, rrr);
+            ctx.lineTo(rrx + rrr, rry + rrh);
+            ctx.arcTo(rrx, rry + rrh, rrx, rry + rrh - rrr, rrr);
+            ctx.lineTo(rrx, rry + rrr);
+            ctx.arcTo(rrx, rry, rrx + rrr, rry, rrr);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#6b7b8c';
+            ctx.font = 'bold 10px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.fillText('钻机', rigX - 18, rigBaseY - 40);
+
+            const mastAngle = -state.inclination * Math.PI / 180;
+            const mastLen = 40;
+            ctx.strokeStyle = '#97938d';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(rigX, rigBaseY - 8);
+            ctx.lineTo(rigX + Math.cos(mastAngle) * mastLen, rigBaseY - 34 + Math.sin(mastAngle) * mastLen);
+            ctx.stroke();
+
+            ctx.fillStyle = '#4e8c41';
+            ctx.beginPath();
+            ctx.arc(rigX, groundY, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillText('入土点', rigX - 16, groundY - 8);
+            const exitX = W * 0.88;
+            ctx.beginPath();
+            ctx.arc(exitX, groundY + H * 0.02, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillText('出土点', exitX + 10, groundY - 2);
+
+            const psX = rigX,
+                psY = groundY + 6;
+            const peX = exitX,
+                peY = groundY + H * 0.02;
+            const cpDepth = groundY + H * 0.46;
+            const cp1x = psX + (peX - psX) * 0.35,
+                cp1y = cpDepth;
+            const cp2x = psX + (peX - psX) * 0.65,
+                cp2y = cpDepth;
+
+            ctx.strokeStyle = 'rgba(78,125,150,0.55)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([8, 6]);
+            ctx.beginPath();
+            ctx.moveTo(psX, psY);
+            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, peX, peY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            const devOff = state.azimuth * 0.5;
+            const devV = (state.inclination - state.targetInclination) * 1.0;
+            const maxDevAnim = Math.max((state.travelLength || 100) * 0.01, 0.01);
+            const isAlarm = state.deviation > maxDevAnim;
+            const actualColor = isAlarm ? '#c43d36' : '#e8b82e';
+
+            ctx.strokeStyle = actualColor;
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.moveTo(psX, psY);
+            ctx.bezierCurveTo(cp1x + devOff * 0.3, cp1y + devV * 0.3, cp2x + devOff * 0.7, cp2y + devV * 0.7, peX + devOff,
+                peY + devV);
+            ctx.stroke();
+
+            const t = state.progress / 100;
+            const ax = psX + (cp1x - psX) * t + ((cp1x + (cp2x - cp1x) * t) - (psX + (cp1x - psX) * t)) * t;
+            const bx = cp1x + (cp2x - cp1x) * t + ((cp2x + (peX - cp2x) * t) - (cp1x + (cp2x - cp1x) * t)) * t;
+            let hx = ax + (bx - ax) * t + devOff * t;
+            const ay = psY + (cp1y - psY) * t + ((cp1y + (cp2y - cp1y) * t) - (psY + (cp1y - psY) * t)) * t;
+            const by = cp1y + (cp2y - cp1y) * t + ((cp2y + (peY - cp2y) * t) - (cp1y + (cp2y - cp1y) * t)) * t;
+            let hy = ay + (by - ay) * t + devV * t;
+
+            if (state.progress > 0.5 && state.progress < 99.5) {
+                ctx.fillStyle = isAlarm ? 'rgba(196,61,54,0.12)' : 'rgba(232,184,46,0.10)';
+                ctx.beginPath();
+                ctx.arc(hx, hy, 14, 0, Math.PI * 2);
+                ctx.fill();
+
+                const dbx = 3 * (1 - t) * (1 - t) * (cp1x - psX) + 6 * (1 - t) * t * (cp2x - cp1x) + 3 * t * t * (peX - cp2x);
+                const dby = 3 * (1 - t) * (1 - t) * (cp1y - psY) + 6 * (1 - t) * t * (cp2y - cp1y) + 3 * t * t * (peY - cp2y);
+                const angle = Math.atan2(dby, dbx);
+
+                ctx.save();
+                ctx.translate(hx, hy);
+                ctx.rotate(angle);
+                ctx.fillStyle = '#e8b82e';
+                ctx.strokeStyle = '#1e2022';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 12, 6, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+                ctx.lineWidth = 0.7;
+                for (let i = -4; i <= 4; i += 2) { ctx.beginPath();
+                    ctx.moveTo(i, -4);
+                    ctx.lineTo(i, 4);
+                    ctx.stroke(); }
+                ctx.strokeStyle = '#d9782b';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.moveTo(9, 0);
+                ctx.lineTo(26, 0);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#d9782b';
+                ctx.beginPath();
+                ctx.moveTo(28, 0);
+                ctx.lineTo(22, -4);
+                ctx.lineTo(22, 4);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+
+            if (state.phase === 'reaming') {
+                const rt = (state.animTime * state.speed * 0.12) % 1;
+                ctx.fillStyle = '#d9782b';
+                ctx.strokeStyle = '#1e2022';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(psX + (peX - psX) * 0.55, cpDepth * 0.5 + groundY * 0.5, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = '#e8e4de';
+                ctx.font = 'bold 9px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+                ctx.fillText('扩孔器', psX + (peX - psX) * 0.55 + 16, cpDepth * 0.5 + groundY * 0.5 + 3);
+            }
+            if (state.phase === 'pullback') {
+                const pt = (state.animTime * state.speed * 0.10) % 1;
+                ctx.strokeStyle = '#6b7b8c';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(peX, peY);
+                ctx.bezierCurveTo(cp2x, cp2y, cp1x, cp1y, psX + (peX - psX) * (1 - pt), psY + (cpDepth - psY) * (1 - pt));
+                ctx.stroke();
+                ctx.fillStyle = '#97938d';
+                ctx.font = 'bold 9px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+                ctx.fillText('管道', peX - 28, peY - 10);
+            }
+
+            const ly = H - 18;
+            ctx.strokeStyle = 'rgba(78,125,150,0.55)';
+            ctx.lineWidth = 1.2;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            ctx.moveTo(12, ly);
+            ctx.lineTo(36, ly);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#97938d';
+            ctx.font = '10px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.fillText('设计轨迹', 42, ly + 4);
+            ctx.strokeStyle = actualColor;
+            ctx.lineWidth = 1.8;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(120, ly);
+            ctx.lineTo(144, ly);
+            ctx.stroke();
+            ctx.fillText('实际轨迹', 150, ly + 4);
+            ctx.fillStyle = '#e8b82e';
+            ctx.beginPath();
+            ctx.arc(254, ly, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillText('钻头', 264, ly + 4);
+        }
+
+        /* ============================================================
+           ANIMATION LOOP
+           ============================================================ */
+        let lastTime = 0,
+            animFrameId = null;
+
+        function animLoop(ts) {
+            if (!state.isRunning) { animFrameId = null; return; }
+            if (!lastTime) lastTime = ts;
+            let dt = (ts - lastTime) / 1000;
+            if (dt > 0.1) dt = 0.1;
+            lastTime = ts;
+            dt *= state.speed;
+
+            if (!state.estop) {
+                state.animTime += dt;
+                // 导向钻进分前后两段，各需 8 秒@1.75×：前半段 0→42（触发急停），后半段 42→100（完成）
+                const spd = state.phase === 'pilot'
+                    ? (state.progress < 42 ? 3 : 58 / 14)
+                    : state.phase === 'reaming' ? 2.5 : 2;
+                state.progress = Math.min(state.progress + spd * dt, 100);
+
+                if (state.phase === 'pilot' && state.progress >= 42 && !state.deviationEventTriggered) {
+                    triggerDeviationEvent();
+                }
+
+                if (state.progress >= 100) {
+                    if (state.phase === 'pilot') { state.phase = 'reaming';
+                        state.progress = 0;
+                        updatePhaseUI(); } else if (state.phase === 'reaming') { state.phase = 'pullback';
+                        state.progress = 0;
+                        updatePhaseUI(); } else {
+                        state.progress = 100;
+                        state.isRunning = false;
+                        document.getElementById('btnStart').textContent = '✓ 完成';
+                        document.getElementById('btnStart').classList.remove('active');
+                    }
+                }
+                state.travelLength = state.progress * 1.5;
+                state.depth = Math.sin(state.progress / 100 * Math.PI) * 20;
+                autoCorrectStep(dt);
+            }
+
+            updateAllDisplays();
+            updateSVG();
+            drawAnimation();
+            animFrameId = requestAnimationFrame(animLoop);
+        }
+
+        function toggleAnimation() {
+            if (state.estop) return;
+            if (state.progress >= 100 && state.phase === 'pullback') resetAnimation();
+            state.isRunning = !state.isRunning;
+            const btn = document.getElementById('btnStart');
+            if (state.isRunning) {
+                btn.textContent = '⏸ 暂停';
+                btn.classList.add('active');
+                lastTime = 0;
+                animFrameId = requestAnimationFrame(animLoop);
+            } else {
+                btn.textContent = '▶ 开始';
+                btn.classList.remove('active');
+                if (animFrameId) cancelAnimationFrame(animFrameId);
+                animFrameId = null;
+            }
+        }
+
+        function resetAnimation() {
+            state.isRunning = false;
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+            animFrameId = null;
+            state.progress = 0;
+            state.depth = 0;
+            state.travelLength = 0;
+            state.animTime = 0;
+            state.phase = 'pilot';
+            lastTime = 0;
+            state.deviationEventTriggered = false;
+            state.autoEstopActive = false;
+            state.estop = false;
+            document.getElementById('btnEstop').textContent = '▮ 紧 急 停 钻';
+            document.getElementById('btnEstop').style.background = '#2a1f1e';
+            document.getElementById('btnEstop').style.borderColor = '#4a302e';
+            document.getElementById('btnStart').textContent = '▶ 开始';
+            document.getElementById('btnStart').classList.remove('active');
+            updatePhaseUI();
+            updateAllDisplays();
+            updateSVG();
+            drawAnimation();
+        }
+
+        function cyclePhase() {
+            if (state.isRunning) return;
+            const phases = ['pilot', 'reaming', 'pullback'];
+            state.phase = phases[(phases.indexOf(state.phase) + 1) % 3];
+            state.progress = 0;
+            state.depth = 0;
+            state.travelLength = 0;
+            state.animTime = 0;
+            lastTime = 0;
+            state.deviationEventTriggered = false;
+            state.autoEstopActive = false;
+            state.estop = false;
+            document.getElementById('btnEstop').textContent = '▮ 紧 急 停 钻';
+            document.getElementById('btnEstop').style.background = '#2a1f1e';
+            document.getElementById('btnEstop').style.borderColor = '#4a302e';
+            updatePhaseUI();
+            updateAllDisplays();
+            updateSVG();
+            drawAnimation();
+        }
+
+        function updatePhaseUI() {
+            const names = { pilot: '导向钻进', reaming: '分级扩孔', pullback: '管线回拖' };
+            document.getElementById('btnPhase').textContent = names[state.phase];
+            document.getElementById('dotPilot').classList.toggle('on', state.phase === 'pilot');
+            document.getElementById('dotPilot').classList.toggle('yellow', state.phase === 'pilot');
+            document.getElementById('dotReam').classList.toggle('on', state.phase === 'reaming');
+            document.getElementById('dotReam').classList.toggle('orange', state.phase === 'reaming');
+            document.getElementById('dotPull').classList.toggle('on', state.phase === 'pullback');
+            document.getElementById('dotPull').classList.toggle('green', state.phase === 'pullback');
+        }
+
+        function setSpeed(v) {
+            state.speed = parseFloat(v);
+            document.getElementById('speedLabel').textContent = v + '×';
+        }
+
+        /* ============================================================
+           KEYBOARD
+           ============================================================ */
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            switch (e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    adjustParam(e.shiftKey ? 'toolFace' : 'inclination', 0.1);
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    adjustParam(e.shiftKey ? 'toolFace' : 'inclination', -0.1);
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    adjustParam('azimuth', 0.1);
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    adjustParam('azimuth', -0.1);
+                    break;
+                case 'a':
+                case 'A':
+                    e.preventDefault();
+                    document.getElementById('toggleAuto').checked = !document.getElementById('toggleAuto').checked;
+                    toggleAutoCorrect();
+                    break;
+                case ' ':
+                    e.preventDefault();
+                    toggleAnimation();
+                    break;
+                case 'r':
+                case 'R':
+                    if (!e.ctrlKey && !e.metaKey) { e.preventDefault();
+                        resetAnimation(); }
+                    break;
+            }
+        });
+
+        /* ============================================================
+           INIT
+           ============================================================ */
+        resizeCanvas();
+        updateAllDisplays();
+        updateSVG();
+        updatePhaseUI();
+        drawAnimation();
+    </script>
+
+</body>
+</html>
